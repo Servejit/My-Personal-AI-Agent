@@ -1,6 +1,6 @@
 # My Personal AI Agent
 
-A free-first Streamlit personal assistant with Gemini-powered chat and a Punjabi Song Generator, plus a safe calculator, CSV/Excel analysis, and notes/tasks. Gemini requires your own API key stored securely as a Codespaces secret.
+A free-first Streamlit personal assistant with Gemini-powered chat, direct sung-MP3 requests from Chat, an AI Music Studio, and a Punjabi Song Generator, plus a safe calculator, CSV/Excel analysis, and notes/tasks. Gemini requires your own API key stored securely as a Codespaces secret.
 
 ## Run in GitHub Codespaces
 
@@ -29,7 +29,8 @@ The Gemini API has limited free-tier access for eligible models/accounts; quotas
 ## Features
 
 - Gemini-powered chat and original Punjabi song lyrics (requires `GEMINI_API_KEY`).
-- Optional sung Punjabi MP3 generation through the public ACE-Step Hugging Face demo; uses generated lyrics, style selection, and an approximate duration, then provides an MP3 download.
+- Ask for a sung MP3 directly in **Chat**: the app writes Punjabi lyrics, requests a sung track with instrumental accompaniment, and shows an audio player plus MP3 download when generation succeeds.
+- AI Music Studio and Punjabi Song Generator remain available for more control over language, style, lyrics, and duration.
 - Safe arithmetic calculator (does not execute arbitrary Python).
 - CSV and Excel spreadsheet previews and summaries.
 - Notes and tasks saved in `data/notes.json` in the working environment.
@@ -46,4 +47,4 @@ The Gemini API has limited free-tier access for eligible models/accounts; quotas
 
 The app uses the Gemini API model configured in `app.py` for lyrics and chat. The API has a limited free tier for eligible accounts, but availability and quotas can change. The app does not intentionally fall back to paid models if the request fails.
 
-Sung MP3 generation uses the public open-source [ACE-Step v1.5 Hugging Face Space](https://huggingface.co/spaces/ACE-Step/Ace-Step-v1.5) via `gradio_client`. It does not require a paid API key, but public demos can sleep, queue, change their API, or become unavailable. This is a best-effort free option, not a guaranteed service. If it fails, open the linked demo directly and use its Lyrics and Generate controls.
+Sung MP3 generation uses the public open-source [ACE-Step v1.5 Hugging Face Space](https://huggingface.co/spaces/ACE-Step/Ace-Step-v1.5) HTTP API. It does not require a paid API key, but public demos can sleep, queue, change their API, or become unavailable. This is a best-effort free option, not a guaranteed service. If it fails, open the linked demo directly and use its Lyrics and Generate controls.
