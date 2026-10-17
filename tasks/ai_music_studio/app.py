@@ -4,6 +4,8 @@ This is not Suno source code and does not use a trained text-to-music model.
 It creates a structured instrumental arrangement with optional experimental tones.
 """
 import streamlit as st
+from pathlib import Path
+import tempfile
 
 from core.procedural_music import generate_instrumental
 
@@ -130,3 +132,96 @@ def render():
                         "Only vowel-shaped tones are synthesized. Consonants and words are not intelligible."
                     )
         st.caption("To make another version, change the Variation seed and generate again.")
+
+
+    st.divider()
+    st.subheader("🧠 Train your own neural music model")
+    st.caption("Experimental: trains a small Transformer from MIDI note sequences you provide. It does not train on audio and does not generate realistic singing.")
+    st.warning(
+        "This is a from-scratch learning prototype, not Suno-quality generation. "
+        "It currently learns note-pitch patterns from MIDI files and renders a simple synthesized melody. "
+        "Training needs optional PyTorch, mido and NumPy dependencies plus your own MIDI training examples."
+    )
+    midi_uploads = st.file_uploader(
+        "Upload MIDI training files (.mid / .midi)",
+        type=["mid", "midi"],
+        accept_multiple_files=True,
+        key="neural_music_midi_uploads",
+        help="Use MIDI files you have permission to use. More varied, clean MIDI examples generally help.",
+    )
+    neural_epochs = st.slider(
+        "Training epochs", min_value=1, max_value=30, value=5, step=1,
+        key="neural_music_epochs",
+    )
+    if st.button("🧠 Train model from my MIDI files", key="train_neural_music_button"):
+        if not midi_uploads:
+            st.error("Upload at least one MIDI file first.")
+        else:
+            try:
+                from core.neural_music_model import train_from_midi_files
+                with tempfile.TemporaryDirectory(prefix="music_midi_") as tmp:
+                    midi_paths = []
+                    for index, uploaded in enumerate(midi_uploads):
+                        safe_name = Path(uploaded.name).name
+                        path = Path(tmp) / f"{index}_{safe_name}"
+                        path.write_bytes(uploaded.getvalue())
+                        midi_paths.append(path)
+                    with st.spinner("Training the small neural model on CPU/GPU available to this Codespace…"):
+                        training_result = train_from_midi_files(
+                            midi_paths,
+                            output_path="models/music_transformer.pt",
+                            epochs=neural_epochs,
+                            sequence_length=64,
+                        )
+                st.session_state["neural_music_training_result"] = training_result
+                st.success(
+                    f"Training finished: {training_result['files']} MIDI file(s), "
+                    f"{training_result['windows']} training windows, "
+                    f"final loss {training_result['final_loss']:.4f}."
+                )
+                st.caption(f"Checkpoint saved at {training_result['checkpoint']}.")
+            except Exception as exc:
+                st.error(f"Training could not start or finish: {exc}")
+                st.info("Install optional packages in the Codespaces terminal: pip install -r requirements-neural.txt")
+
+    checkpoint_path = Path("models/music_transformer.pt")
+    if checkpoint_path.exists():
+        st.markdown("**Your trained model is available in this Codespace.**")
+        neural_length = st.slider(
+            "Generated melody notes", min_value=32, max_value=256, value=96, step=16,
+            key="neural_music_length",
+        )
+        neural_temperature = st.slider(
+            "Variation", min_value=0.3, max_value=1.5, value=0.9, step=0.1,
+            key="neural_music_temperature",
+        )
+        neural_seed = st.number_input(
+            "Neural model seed", min_value=0, max_value=999999, value=7, step=1,
+            key="neural_music_seed",
+        )
+        if st.button("🎹 Generate neural melody preview", key="generate_neural_music_button"):
+            try:
+                from core.neural_music_model import generate_pitch_sequence, render_pitch_sequence_wav
+                with st.spinner("Generating a new melody from your trained model…"):
+                    notes = generate_pitch_sequence(
+                        checkpoint_path,
+                        length=neural_length,
+                        temperature=neural_temperature,
+                        seed=int(neural_seed),
+                    )
+                    output_path = "models/neural_music_preview.wav"
+                    render_pitch_sequence_wav(notes, output_path=output_path, bpm=bpm if "bpm" in locals() else 100)
+                    st.session_state["neural_music_preview_bytes"] = Path(output_path).read_bytes()
+                    st.session_state["neural_music_preview_notes"] = len(notes)
+            except Exception as exc:
+                st.error(f"Neural generation failed: {exc}")
+                st.info("Check that requirements-neural.txt is installed and the checkpoint was trained successfully.")
+        if st.session_state.get("neural_music_preview_bytes"):
+            st.audio(st.session_state["neural_music_preview_bytes"], format="audio/wav")
+            st.download_button(
+                "⬇️ Download neural melody preview (WAV)",
+                data=st.session_state["neural_music_preview_bytes"],
+                file_name="neural_music_preview.wav",
+                mime="audio/wav",
+                key="download_neural_music_preview",
+            )
