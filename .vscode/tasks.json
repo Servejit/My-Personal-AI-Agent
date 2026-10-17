@@ -4,7 +4,7 @@
     {
       "label": "Run Personal AI Agent",
       "type": "shell",
-      "command": "python -m streamlit run app.py --server.address 0.0.0.0 --server.port 8501",
+      "command": "python -m pip install -r requirements.txt && python -m streamlit run app.py --server.address 0.0.0.0 --server.port 8501",
       "isBackground": true,
       "problemMatcher": [],
       "presentation": {
