@@ -41,4 +41,17 @@ jobs:
               assert track.getframerate() == 16000
               assert track.getnframes() == 8 * 16000
           print("Music generator smoke test passed.")
+
+          vocal_audio = generate_instrumental(
+              title="Vocal smoke test",
+              genre="Punjabi-inspired",
+              mood="Uplifting",
+              duration=8,
+              bpm=100,
+              seed=19,
+              lyrics="ਮਿਹਨਤ ਸਫਲਤਾ",
+          )
+          with wave.open(io.BytesIO(vocal_audio), "rb") as track:
+              assert track.getnframes() == 8 * 16000
+          print("Experimental vocal-layer smoke test passed.")
           PY
