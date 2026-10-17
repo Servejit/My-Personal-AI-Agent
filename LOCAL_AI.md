@@ -25,7 +25,7 @@ The AI Music Studio calls `core/procedural_music.py`, a from-scratch algorithmic
 
 No ACE-Step, Suno, remote inference, music API, model download, or API key is used. Music is generated inside the Streamlit Python process.
 
-**Current limitations:** the engine creates instrumental music only. Lyrics are stored as notes and are not sung; it is not a neural text-to-music model and does not yet produce natural vocals or interpret arbitrary prompts like Suno. Duration is limited to 8–60 seconds to keep generation practical in a small app runtime.
+**Current limitations:** the optional vocal layer is an experimental formant synthesizer that produces vowel-like tones but does not pronounce lyrics intelligibly. It is not a neural text-to-music model and does not produce realistic human vocals or interpret arbitrary prompts like Suno. Duration is limited to 8–60 seconds to keep generation practical in a small app runtime.
 
 ## What works without a model
 
