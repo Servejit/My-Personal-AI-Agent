@@ -49,7 +49,7 @@ jobs:
               duration=8,
               bpm=100,
               seed=19,
-              lyrics="ਮਿਹਨਤ ਸਫਲਤਾ",
+              lyrics="music generation",
           )
           with wave.open(io.BytesIO(vocal_audio), "rb") as track:
               assert track.getnframes() == 8 * 16000
