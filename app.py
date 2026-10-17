@@ -80,6 +80,147 @@ def generate_with_gemini(prompt, history=None, system_instruction=None):
     except (KeyError, IndexError, TypeError, ValueError) as exc:
         raise RuntimeError("Gemini returned an unexpected response. Please try again.") from exc
 
+
+def generate_sung_mp3_with_ace_step(lyrics, style, duration_seconds=120):
+    """Use the public, open-source ACE-Step Hugging Face Space when available.
+
+    This is a community-hosted free demo, not a guaranteed uptime service. No API key
+    is needed. It may queue, sleep, or be temporarily unavailable.
+    """
+    import io
+    import requests
+    from gradio_client import Client
+
+    space_id = "ACE-Step/Ace-Step-v1.5"
+    client = Client(space_id, verbose=False)
+    try:
+        api_info = client.view_api(return_format="dict")
+    except TypeError:
+        api_info = client.view_api()
+
+    if not isinstance(api_info, dict):
+        raise RuntimeError(
+            "Could not inspect the music generator API. Open the ACE-Step demo directly: "
+            "https://huggingface.co/spaces/ACE-Step/Ace-Step-v1.5"
+        )
+
+    endpoints = api_info.get("named_endpoints") or api_info.get("named_endpoints_info") or {}
+    if not endpoints:
+        raise RuntimeError(
+            "The free ACE-Step demo does not currently expose a callable API. "
+            "Try again later or use https://huggingface.co/spaces/ACE-Step/Ace-Step-v1.5"
+        )
+
+    candidates = []
+    for endpoint_name, info in endpoints.items():
+        text = (str(endpoint_name) + " " + str(info.get("description", "")) + " " +
+                str(info.get("parameters", ""))).lower()
+        if any(word in text for word in ("generate", "text2music", "text_to_music", "music generation")):
+            candidates.append((endpoint_name, info))
+    if not candidates:
+        raise RuntimeError(
+            "The free ACE-Step demo's generation endpoint was not found. "
+            "Open the demo directly: https://huggingface.co/spaces/ACE-Step/Ace-Step-v1.5"
+        )
+
+    endpoint_name, endpoint_info = candidates[0]
+    params = endpoint_info.get("parameters", [])
+    if isinstance(params, dict):
+        params = params.get("parameters", [])
+    args = []
+    style_prompt = (
+        f"Punjabi song, {style}, melodic Punjabi vocals, clear lead singer, "
+        "rhythmic drums, bass, polished studio mix, Punjabi language"
+    )
+
+    for param in params:
+        if not isinstance(param, dict):
+            args.append(None)
+            continue
+        pname = str(param.get("parameter_name") or param.get("label") or param.get("name") or "").lower()
+        default = param.get("parameter_default")
+        has_default = param.get("parameter_has_default", "parameter_default" in param)
+        if "lyric" in pname:
+            value = lyrics
+        elif any(k in pname for k in ("caption", "tags", "style", "prompt", "description")):
+            value = style_prompt
+        elif "duration" in pname or pname in ("seconds", "length"):
+            value = int(duration_seconds)
+        elif "vocal_language" in pname or pname in ("language", "lang"):
+            value = "Punjabi"
+        elif "instrumental" in pname:
+            value = False
+        elif "batch_size" in pname or "num_samples" in pname:
+            value = 1
+        elif pname == "bpm" or "tempo" in pname:
+            value = 100
+        elif "format" in pname and "audio" in pname:
+            value = "mp3"
+        elif has_default:
+            value = default
+        else:
+            value = None
+        args.append(value)
+
+    result = client.predict(*args, api_name=endpoint_name)
+
+    file_candidates = []
+    def collect_files(obj):
+        if isinstance(obj, str):
+            if obj.startswith("http://") or obj.startswith("https://"):
+                if any(ext in obj.lower().split("?")[0] for ext in (".mp3", ".wav", ".flac", ".ogg", ".m4a")):
+                    file_candidates.append(obj)
+            elif Path(obj).is_file() and Path(obj).suffix.lower() in (".mp3", ".wav", ".flac", ".ogg", ".m4a"):
+                file_candidates.append(obj)
+        elif isinstance(obj, dict):
+            for key, value in obj.items():
+                if key.lower() in ("path", "url", "audio", "name") and isinstance(value, str):
+                    collect_files(value)
+                else:
+                    collect_files(value)
+        elif isinstance(obj, (list, tuple)):
+            for value in obj:
+                collect_files(value)
+
+    collect_files(result)
+    if not file_candidates:
+        raise RuntimeError(
+            "The music service responded but did not return a downloadable audio file. "
+            "It may be busy or its API may have changed; try again later."
+        )
+
+    audio_ref = file_candidates[0]
+    if audio_ref.startswith(("http://", "https://")):
+        response = requests.get(audio_ref, timeout=120)
+        response.raise_for_status()
+        audio_bytes = response.content
+        suffix = audio_ref.lower().split("?")[0].rsplit(".", 1)[-1]
+    else:
+        audio_path = Path(audio_ref)
+        audio_bytes = audio_path.read_bytes()
+        suffix = audio_path.suffix.lower().lstrip(".")
+
+    if suffix == "mp3":
+        return audio_bytes
+
+    # Convert other supported audio formats to MP3 for the requested download.
+    try:
+        import imageio_ffmpeg
+        from pydub import AudioSegment
+        import os
+        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        AudioSegment.converter = ffmpeg_exe
+        audio = AudioSegment.from_file(io.BytesIO(audio_bytes), format=suffix or "wav")
+        output = io.BytesIO()
+        audio.export(output, format="mp3", bitrate="192k")
+        return output.getvalue()
+    except Exception as exc:
+        raise RuntimeError(
+            "The service returned audio, but MP3 conversion failed. "
+            "Please try again; the demo may have returned an unsupported audio format."
+        ) from exc
+
+
 def load_notes():
     try:
         if NOTES_FILE.exists():
@@ -235,6 +376,41 @@ elif page == 'Punjabi Song Generator':
         st.markdown('### Your Punjabi song')
         st.markdown(st.session_state['last_punjabi_song'])
         st.download_button('Download lyrics (.txt)', st.session_state['last_punjabi_song'], file_name='punjabi_song_lyrics.txt', mime='text/plain', use_container_width=True)
+
+        st.markdown('### 🎤 Turn these lyrics into a sung MP3')
+        st.write('This uses the public open-source ACE-Step music demo. It attempts to sing your lyrics with music and beats. The demo is free to try, but its queue and availability are controlled by its host; no free uptime is guaranteed.')
+        mp3_style = st.selectbox(
+            'Song sound',
+            ['Punjabi Bhangra / upbeat pop', 'Romantic Punjabi melody', 'Sad / emotional Punjabi song',
+             'Motivational Punjabi anthem', 'Punjabi folk', 'Punjabi hip-hop / rap'],
+            key='mp3_song_style'
+        )
+        mp3_duration = st.select_slider(
+            'Approximate song length',
+            options=[30, 60, 90, 120, 150, 180],
+            value=120,
+            format_func=lambda seconds: f'{seconds} seconds',
+            key='mp3_song_duration'
+        )
+        if st.button('🎵 Generate sung MP3', type='primary', use_container_width=True):
+            try:
+                with st.spinner('Generating singing and music on the free hosted demo. This may take several minutes...'):
+                    st.session_state['last_song_mp3'] = generate_sung_mp3_with_ace_step(
+                        st.session_state['last_punjabi_song'], mp3_style, mp3_duration
+                    )
+                st.success('Your MP3 is ready.')
+            except Exception as exc:
+                st.error(f'Could not generate MP3: {exc}')
+                st.markdown('[Open ACE-Step music demo directly](https://huggingface.co/spaces/ACE-Step/Ace-Step-v1.5)')
+        if st.session_state.get('last_song_mp3'):
+            st.audio(st.session_state['last_song_mp3'], format='audio/mpeg')
+            st.download_button(
+                '⬇️ Download sung song (.mp3)',
+                data=st.session_state['last_song_mp3'],
+                file_name='punjabi_song.mp3',
+                mime='audio/mpeg',
+                use_container_width=True
+            )
 
 elif page == 'File Analyst':
     st.subheader('File Analyst')
