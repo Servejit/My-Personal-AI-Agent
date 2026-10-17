@@ -36,3 +36,26 @@ External AI services are disabled by default. For optional local text generation
 ## Honest capability limits
 
 This app's music engine is original procedural Python code, not Suno-level generative AI. It creates instrumental WAV audio without a model or network connection. The offline lyric starter is template-based rather than a full language model. Poster Maker creates typography/shape-based PNG graphics locally and does not create photorealistic artwork.
+
+## Experimental neural music model (train it yourself)
+
+The AI Music Studio now includes an optional **Train your own neural music model** section. This is a small Transformer written for this repository and trained from scratch on MIDI note sequences supplied by you. It is not Suno source code, does not call a paid API, and does not download pretrained weights.
+
+Install its optional dependencies in the Codespaces terminal:
+
+```bash
+python -m pip install -r requirements-neural.txt
+```
+
+Then open **AI Music Studio**, upload one or more `.mid` / `.midi` files, and select **Train model from my MIDI files**. After training, select **Generate neural melody preview** and download the WAV. The checkpoint is saved locally at `models/music_transformer.pt` in the Codespace.
+
+CLI alternative:
+
+```bash
+mkdir -p data/midi
+# Put MIDI files you have permission to use in data/midi/
+python scripts/train_neural_music.py train --midi-dir data/midi --epochs 30
+python scripts/train_neural_music.py generate --length 128 --bpm 100
+```
+
+**Important limitations:** this first neural prototype learns pitch sequences from MIDI, not raw audio. Its preview is a simple synthesized melody, not a full-band song; it does not generate lyrics, human vocals, realistic singing, or Suno-level audio. Training quality depends on the amount and quality of MIDI examples and available compute. The existing procedural instrumental generator remains available independently. Checkpoints are generated locally and are not committed to GitHub.
