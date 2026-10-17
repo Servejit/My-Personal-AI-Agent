@@ -93,8 +93,47 @@ def _add_drums(mix, beat_times, style, rng):
                 mix[first + j] += rng.uniform(-1.0, 1.0) * math.exp(-90.0 * t) * 0.035
 
 
+def _add_vowel_voice(mix, start, duration, midi_note, vowel, volume=0.055):
+    """Experimental formant-like vowel synth; not intelligible speech or a real singer."""
+    first = max(0, int(start * SAMPLE_RATE))
+    last = min(len(mix), int((start + duration) * SAMPLE_RATE))
+    if last <= first:
+        return
+    # Approximate formant centers (Hz) for a simple synthetic vowel timbre.
+    formants = {
+        "a": (800.0, 1200.0, 2500.0),
+        "e": (500.0, 1900.0, 2600.0),
+        "i": (300.0, 2200.0, 3000.0),
+        "o": (500.0, 900.0, 2500.0),
+        "u": (350.0, 700.0, 2400.0),
+    }
+    centers = formants.get(vowel.lower(), formants["a"])
+    fundamental = _frequency(midi_note)
+    span = max(1, last - first)
+    attack_n = max(1, int(0.035 * SAMPLE_RATE))
+    release_n = max(1, int(0.09 * SAMPLE_RATE))
+    for index in range(first, last):
+        local = index - first
+        envelope = min(1.0, local / attack_n, (span - local) / release_n)
+        if envelope <= 0:
+            continue
+        t = local / SAMPLE_RATE
+        sound = 0.0
+        for harmonic in range(1, 13):
+            frequency = fundamental * harmonic
+            if frequency >= SAMPLE_RATE / 2:
+                break
+            formant_gain = max(
+                math.exp(-0.5 * ((frequency - center) / (center * 0.24)) ** 2)
+                for center in centers
+            )
+            sound += (formant_gain / (harmonic ** 0.65)) * math.sin(math.tau * frequency * t)
+        mix[index] += sound * volume * envelope
+
+
 def generate_instrumental(title: str, genre: str = "Pop", mood: str = "Uplifting",
-                          duration: int = 30, bpm: int = 100, seed: int = 7, prompt: str = "") -> bytes:
+                          duration: int = 30, bpm: int = 100, seed: int = 7,
+                          prompt: str = "", lyrics: str = "") -> bytes:
     """Return an original 16-bit mono WAV as bytes."""
     duration = max(8, min(60, int(duration)))
     bpm = max(60, min(160, int(bpm)))
@@ -145,6 +184,23 @@ def generate_instrumental(title: str, genre: str = "Pop", mood: str = "Uplifting
                       attack=0.008, release=min(0.16, note_duration * 0.45))
 
     _add_drums(mix, beat_times, genre, rng)
+
+    # Optional experimental vowel-like vocal layer. This maps lyric vowel letters to
+    # formant colors; it does not pronounce consonants or produce intelligible words.
+    lyric_vowels = [ch.lower() for ch in (lyrics or "").lower() if ch in "aeiou"]
+    if lyric_vowels:
+        phrase_step = beat * 2.0
+        voice_times = [n * phrase_step for n in range(int(duration / phrase_step) + 1)]
+        for note_index, start in enumerate(voice_times):
+            if start >= duration:
+                continue
+            vowel = lyric_vowels[note_index % len(lyric_vowels)]
+            voice_note = root + 24 + scale[note_index % len(scale)]
+            _add_vowel_voice(
+                mix, start, min(phrase_step * 0.88, duration - start),
+                voice_note, vowel, volume=0.035,
+            )
+
     # Soft fade-in/out, peak normalization and clipping protection.
     fade_n = min(int(0.6 * SAMPLE_RATE), total_samples // 4)
     peak = max((abs(x) for x in mix), default=0.0) or 1.0
