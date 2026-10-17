@@ -175,13 +175,13 @@ def _render_svg_poster(content, title, subtitle, theme_name, format_name, footer
 
     title = (title or "").strip()
     if not title:
-        title = re.split(r"[.!?\\n]", content.strip(), maxsplit=1)[0].strip() or "Your Big Idea"
+        title = re.split(r"[.!?\n]", content.strip(), maxsplit=1)[0].strip() or "Your Big Idea"
         if len(title) > 78:
             title = title[:75].rsplit(" ", 1)[0] + "…"
 
     def wrap_words(value, limit):
         result, current = [], ""
-        for word in re.sub(r"\\s+", " ", value).strip().split():
+        for word in re.sub(r"\s+", " ", value).strip().split():
             candidate = word if not current else current + " " + word
             if len(candidate) <= limit:
                 current = candidate
@@ -241,7 +241,7 @@ def _render_svg_poster(content, title, subtitle, theme_name, format_name, footer
         for idx, line in enumerate(wrap_words(footer.strip(), 55)[:2]):
             elements.append(f'<text x="92" y="{footer_y+42+idx*32}" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="{accent_hex}">{html.escape(line)}</text>')
     elements.append('</svg>')
-    return "\\n".join(elements).encode("utf-8")
+    return "\n".join(elements).encode("utf-8")
 
 
 def render():
