@@ -1,5 +1,8 @@
 """Independent Chat task UI. Edit this file to change only this task."""
 from core.services import *
+
+TASK_NAME = "Chat"
+TASK_ICON = "💬"
 from tasks import poster_maker
 
 
