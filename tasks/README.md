@@ -9,9 +9,9 @@ Every built-in workspace task has its own Streamlit UI file:
 - `tasks/calculator/app.py`
 - `tasks/notes_tasks/app.py`
 - `tasks/settings/app.py`
-- `tasks/poster_maker.py` (existing optional plugin)
+- `tasks/poster_maker/app.py`
 
-The root `app.py` is now only the launcher. Shared reusable services (Gemini access, audio generation, notes persistence, safe calculation, and file summaries) live in `core/services.py`. This avoids copying the same helpers into every task while allowing each task's interface and workflow to be edited independently.
+The root `app.py` is now only the launcher. Shared reusable services (Gemini access, audio generation, notes persistence, safe calculation, and file summaries) live in `core/services.py`. The reusable poster renderer is in `tasks/_poster_renderer.py` and is used by both Chat and the Poster Maker app. This avoids copying the same helpers into every task while allowing each task's interface and workflow to be edited independently.
 
 ## Add a new built-in task
 
