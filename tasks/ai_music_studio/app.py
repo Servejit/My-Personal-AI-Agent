@@ -1,9 +1,8 @@
-"""AI Music Studio: original music generated locally with a Python synthesizer.
+"""AI Music Studio: local procedural music and experimental vowel synthesis.
 
-No ACE-Step, Suno, hosted inference API, model download, or network request is used.
-This first version generates instrumental WAV audio; it does not synthesize realistic singing.
+No hosted music API, ACE-Step, Suno, model download, or network request is used.
+The optional vocal layer is a robotic formant tone, not intelligible singing.
 """
-import random
 import streamlit as st
 
 from core.procedural_music import generate_instrumental
@@ -15,11 +14,11 @@ TASK_ICON = "🎧"
 def render():
     st.title("🎧 AI Music Studio")
     st.caption("Your own Python music engine • free • local • no external AI APIs")
-
     st.info(
-        "This studio composes an original instrumental track using Python-generated "
-        "chords, melody, bass and percussion. It needs no API key, model download or "
-        "separate server. Realistic sung vocals are not available in this first version."
+        "This studio creates original music locally using a Python synthesizer. It can "
+        "also add an experimental vowel-like synthetic vocal tone guided by your lyrics. "
+        "That voice layer is robotic and does not pronounce words intelligibly; it is "
+        "not realistic AI singing. No API, model download or separate server is needed."
     )
 
     with st.form("python_music_studio_form"):
@@ -46,16 +45,26 @@ def render():
             st.caption("Change the seed to create a different melody.")
         lyrics = st.text_area(
             "Lyrics / song notes (optional)",
-            placeholder="Paste lyrics here. They are kept as notes and are not sung by this instrumental engine.",
+            placeholder="Paste lyrics. Optional experimental vocal mode uses vowel sounds only; it will not sing the words intelligibly.",
             height=120,
         )
-        make_track = st.form_submit_button("🎼 Generate original instrumental", type="primary", use_container_width=True)
+        add_vocal = st.checkbox(
+            "Add experimental synthetic vocal layer (robotic vowel sounds)",
+            value=False,
+            help="Uses a formant synthesizer written in Python. It does not create intelligible words or realistic human singing.",
+        )
+        make_track = st.form_submit_button(
+            "🎼 Generate original music", type="primary", use_container_width=True
+        )
 
     if make_track:
         if not title.strip():
             st.error("Please enter a song title or idea.")
             return
-        with st.spinner("Composing your track with the built-in Python engine…"):
+        if add_vocal and not lyrics.strip():
+            st.error("Enter some lyrics to drive the experimental vowel layer, or turn that option off.")
+            return
+        with st.spinner("Composing with the built-in Python engine…"):
             try:
                 audio_bytes = generate_instrumental(
                     title=title.strip(),
@@ -65,6 +74,7 @@ def render():
                     bpm=bpm,
                     seed=int(seed),
                     prompt=description.strip(),
+                    lyrics=lyrics.strip() if add_vocal else "",
                 )
             except Exception as exc:
                 st.error(f"Music generation failed: {exc}")
@@ -78,6 +88,7 @@ def render():
             "bpm": bpm,
             "description": description.strip(),
             "lyrics": lyrics.strip(),
+            "vocal_layer": bool(add_vocal),
             "seed": int(seed),
         }
 
@@ -85,13 +96,16 @@ def render():
     if result:
         st.divider()
         st.subheader(f"🎵 {result['title']}")
+        vocal_label = " • experimental vowel layer" if result.get("vocal_layer") else ""
         st.caption(
             f"{result['genre']} • {result['mood']} • {result['duration']} seconds • "
-            f"{result['bpm']} BPM • seed {result['seed']}"
+            f"{result['bpm']} BPM • seed {result['seed']}{vocal_label}"
         )
         st.audio(result["audio"], format="audio/wav")
-        safe_name = "".join(c.lower() if c.isalnum() else "_" for c in result["title"]).strip("_")
-        safe_name = safe_name[:60] or "original_instrumental"
+        safe_name = "".join(
+            c.lower() if c.isalnum() else "_" for c in result["title"]
+        ).strip("_")
+        safe_name = safe_name[:60] or "original_music"
         st.download_button(
             "⬇️ Download WAV music",
             data=result["audio"],
@@ -103,6 +117,15 @@ def render():
             with st.expander("Your original brief"):
                 st.write(result["description"])
         if result.get("lyrics"):
-            with st.expander("Saved lyrics / notes (not sung)"):
+            label = (
+                "Lyrics used to guide the experimental vocal layer"
+                if result.get("vocal_layer")
+                else "Saved lyrics / notes (not sung)"
+            )
+            with st.expander(label):
                 st.text(result["lyrics"])
+                if result.get("vocal_layer"):
+                    st.caption(
+                        "Only vowel-shaped tones are synthesized. Consonants and words are not intelligible."
+                    )
         st.caption("To make another version, change the Variation seed and generate again.")
