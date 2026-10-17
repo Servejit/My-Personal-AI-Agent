@@ -1,10 +1,13 @@
 """Independent Notes & Tasks task UI. Edit this file to change only this task."""
 from core.services import *
 
+TASK_NAME = "Notes & Tasks"
+TASK_ICON = "📝"
+
 
 def render():
     page = "Notes & Tasks"
-    elif page == 'Notes & Tasks':
+    if page == 'Notes & Tasks':
         st.subheader('Notes & Tasks')
         with st.form('add_note_form', clear_on_submit=True):
             title = st.text_input('Title', placeholder='Example: Learn AI agents')
