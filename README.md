@@ -28,7 +28,8 @@ Create a key at [Google AI Studio](https://aistudio.google.com/apikey) if the fr
 - `tasks/calculator/app.py` — safe arithmetic calculator.
 - `tasks/notes_tasks/app.py` — saved notes and tasks.
 - `tasks/settings/app.py` — privacy, environment, and model setup.
-- `tasks/poster_maker.py` — optional standalone Poster Maker plugin.
+- `tasks/poster_maker/app.py` — independent Poster Maker task UI.
+- `tasks/_poster_renderer.py` — private shared implementation used by Poster Maker and Chat.
 
 Every built-in task is loaded from its own `tasks/<task_name>/app.py`. Add a folder containing an `app.py` with a `render()` function to add a task. See [tasks/README.md](tasks/README.md).
 
