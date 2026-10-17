@@ -172,23 +172,10 @@ def render():
             st.markdown(st.session_state['last_punjabi_song'])
             st.download_button('Download lyrics (.txt)', st.session_state['last_punjabi_song'], file_name='punjabi_song_lyrics.txt', mime='text/plain', use_container_width=True)
 
-            st.markdown('### 🎤 Turn these lyrics into a sung MP3')
-            st.info('To generate a sung MP3 locally, open the AI Music Studio task. It connects only to your own local ACE-Step engine and never falls back to a hosted music API.')
-            mp3_style = st.selectbox(
-                'Song sound',
-                ['Punjabi Bhangra / upbeat pop', 'Romantic Punjabi melody', 'Sad / emotional Punjabi song',
-                 'Motivational Punjabi anthem', 'Punjabi folk', 'Punjabi hip-hop / rap'],
-                key='mp3_song_style'
-            )
-            mp3_duration = st.select_slider(
-                'Approximate song length',
-                options=[30, 60, 90, 120, 150, 180],
-                value=120,
-                format_func=lambda seconds: f'{seconds} seconds',
-                key='mp3_song_duration'
-            )
-            if st.button('🎧 Open instructions for local music generation', use_container_width=True):
+            st.markdown('### 🎧 Create an instrumental track from your song idea')
+            st.info('The built-in Python Music Studio can create an original instrumental WAV with melody, chords, bass and percussion. It does not sing or synthesize the lyrics yet.')
+            if st.button('🎼 Show Python Music Studio instructions', use_container_width=True):
                 st.session_state['show_local_music_instructions'] = True
             if st.session_state.get('show_local_music_instructions'):
-                st.markdown('Open the AI Music Studio task from the app menu. Install ACE-Step 1.5 locally using the setup instructions in LOCAL_AI.md, then start its API server on port 8001.')
-                st.markdown('[Local music engine setup](https://github.com/Servejit/My-Personal-AI-Agent/blob/main/LOCAL_AI.md)')
+                st.markdown('Open AI Music Studio from the app menu. Choose Punjabi-inspired for the genre, then select a mood, tempo and duration (8–60 seconds). Paste your lyrics into the notes field if you want to keep them with the track; they will not be sung.')
+                st.markdown('[Python music engine code](https://github.com/Servejit/My-Personal-AI-Agent/blob/main/core/procedural_music.py)')
