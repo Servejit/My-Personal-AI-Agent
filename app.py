@@ -53,6 +53,7 @@ def load_task_plugins():
                 "name": task_name,
                 "icon": str(getattr(module, "TASK_ICON", "🧩")),
                 "render": render,
+                "module": module,
                 "file": task_file.name,
             })
         except Exception as exc:
@@ -334,7 +335,68 @@ if page == 'Chat':
             'sing it', 'generate music', 'create music', 'make a song with',
             'ਗੀਤ ਦੀ ਆਵਾਜ਼', 'ਆਡੀਓ', 'ਐਮਪੀ3', 'ਗਾ ਕੇ'
         ])
-        if low.startswith('calculate '):
+        poster_request = any(term in low for term in [
+            'poster', 'make a flyer', 'create a flyer', 'design a flyer',
+            'generate a flyer', 'make an advertisement', 'create an advertisement',
+            'design an ad', 'make an ad', 'create an ad'
+        ])
+        if poster_request:
+            try:
+                poster_plugin = TASK_PLUGIN_MAP.get('Poster Maker', {}).get('module')
+                if poster_plugin is None:
+                    raise RuntimeError("Poster Maker task is not loaded. Check tasks/poster_maker.py.")
+                poster_brief = {
+                    "title": prompt[:100].strip(),
+                    "subtitle": "",
+                    "content": prompt,
+                    "footer": "",
+                    "theme": "Midnight blue",
+                    "format": "Portrait (4:5)",
+                }
+                try:
+                    brief_text = generate_with_gemini(
+                        "Turn the user's command into concise, polished copy for a poster. Return ONLY valid JSON with keys title, subtitle, content, footer, theme, format. "
+                        "Keep title under 8 words, subtitle under 14 words, and content concise enough for a social poster. "
+                        "Preserve names, dates, prices, contact details and facts supplied by the user; never invent missing details. "
+                        "Choose theme from: Midnight blue, Sunset orange, Forest green, Royal purple, Clean white. "
+                        "Choose format exactly Portrait (4:5) or Square (1:1). "
+                        "If the user asks for a particular colour/style, select the closest theme. "
+                        "User command: " + prompt,
+                        history=st.session_state.chat_history[:-1],
+                        system_instruction="You are a professional poster copywriter. Return valid JSON only, with no markdown fences."
+                    )
+                    import re
+                    match = re.search(r"\{.*\}", brief_text, flags=re.DOTALL)
+                    if match:
+                        parsed = json.loads(match.group(0))
+                        if isinstance(parsed, dict):
+                            for key in poster_brief:
+                                if parsed.get(key) is not None:
+                                    poster_brief[key] = str(parsed[key]).strip()
+                except Exception:
+                    # The poster still works locally if the text AI is unavailable.
+                    pass
+                if poster_brief["theme"] not in {
+                    "Midnight blue", "Sunset orange", "Forest green", "Royal purple", "Clean white"
+                }:
+                    poster_brief["theme"] = "Midnight blue"
+                if poster_brief["format"] not in {"Portrait (4:5)", "Square (1:1)"}:
+                    poster_brief["format"] = "Portrait (4:5)"
+                poster_bytes = poster_plugin._render_poster(
+                    poster_brief["content"] or prompt,
+                    poster_brief["title"],
+                    poster_brief["subtitle"],
+                    poster_brief["theme"],
+                    poster_brief["format"],
+                    poster_brief["footer"],
+                )
+                st.session_state["chat_generated_poster_png"] = poster_bytes
+                st.session_state["chat_generated_poster_title"] = poster_brief["title"] or "Your poster"
+                st.session_state["chat_generated_poster_command"] = prompt
+                response = "Your poster is ready below. Preview it and use Download poster (PNG) to save the generated image."
+            except Exception as exc:
+                response = f"I couldn't generate the poster: {exc}"
+        elif low.startswith('calculate '):
             try: response = f'Result: **{safe_calculate(prompt[10:].strip())}**'
             except Exception as exc: response = f'I could not calculate that: {exc}'
         elif low in {'help', '/help'}:
@@ -380,6 +442,18 @@ if page == 'Chat':
                 response = f'**AI connection problem**\n\n{exc}'
         st.session_state.chat_history.append({'role': 'assistant', 'content': response})
         st.rerun()
+    if st.session_state.get('chat_generated_poster_png'):
+        st.markdown("### 🖼️ Generated poster")
+        st.caption(st.session_state.get('chat_generated_poster_title', 'Your poster'))
+        st.image(st.session_state['chat_generated_poster_png'], use_container_width=True)
+        st.download_button(
+            '⬇️ Download generated poster (PNG)',
+            data=st.session_state['chat_generated_poster_png'],
+            file_name='ai_agent_generated_poster.png',
+            mime='image/png',
+            use_container_width=True,
+            key='chat_generated_poster_download',
+        )
     if st.session_state.get('chat_generated_song_lyrics'):
         with st.expander('🎵 Latest song lyrics', expanded=True):
             st.markdown(st.session_state['chat_generated_song_lyrics'])
