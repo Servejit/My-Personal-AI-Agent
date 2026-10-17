@@ -131,10 +131,31 @@ def _add_vowel_voice(mix, start, duration, midi_note, vowel, volume=0.055):
         mix[index] += sound * volume * envelope
 
 
+def _section_profile(bar_index: int, total_bars: int) -> tuple[str, float]:
+    """Return an original song-section label and energy curve for arrangement."""
+    if total_bars <= 1:
+        return "Outro", 0.7
+    progress = bar_index / max(1, total_bars - 1)
+    if progress < 0.12:
+        return "Intro", 0.58
+    if progress < 0.38:
+        return "Verse", 0.78
+    if progress < 0.62:
+        return "Chorus", 1.0
+    if progress < 0.80:
+        return "Verse 2", 0.82
+    if progress < 0.94:
+        return "Final Chorus", 1.08
+    return "Outro", 0.68
+
+
 def generate_instrumental(title: str, genre: str = "Pop", mood: str = "Uplifting",
                           duration: int = 30, bpm: int = 100, seed: int = 7,
                           prompt: str = "", lyrics: str = "") -> bytes:
-    """Return an original 16-bit mono WAV as bytes."""
+    """Return an original 16-bit mono WAV using a section-aware procedural arrangement.
+
+    This is newly authored algorithmic composition, not a trained text-to-music model.
+    """
     duration = max(8, min(60, int(duration)))
     bpm = max(60, min(160, int(bpm)))
     genre = genre if genre in CHORDS else "Pop"
@@ -152,22 +173,31 @@ def generate_instrumental(title: str, genre: str = "Pop", mood: str = "Uplifting
     root = 48 + rng.randrange(0, 12)
     beat_times = [n * beat for n in range(int(duration / beat) + 1) if n * beat < duration]
 
-    for bar_index, bar_start in enumerate([n * bar for n in range(int(math.ceil(duration / bar)))]):
+    total_bars = max(1, int(math.ceil(duration / bar)))
+    for bar_index, bar_start in enumerate([n * bar for n in range(total_bars)]):
+        section_name, energy = _section_profile(bar_index, total_bars)
         chord = chord_set[bar_index % len(chord_set)]
         chord_duration = min(bar, duration - bar_start)
         pad_wave = "pad" if genre in ("Ambient", "Cinematic", "Lo-fi") else "soft"
+
+        # Arrangement changes across intro, verses, chorus and outro instead of
+        # repeating one constant-volume loop for the whole track.
+        chord_shift = 12 if section_name in ("Chorus", "Final Chorus") else 0
         for interval in chord:
-            _add_tone(mix, bar_start, chord_duration, root + interval + 12, 0.075,
-                      pad_wave, rng, attack=0.25, release=0.35)
-        # Bass notes anchor the chord on beats 1 and 3.
+            _add_tone(mix, bar_start, chord_duration, root + interval + 12 + chord_shift,
+                      0.075 * energy, pad_wave, rng, attack=0.25, release=0.35)
+
+        # Bass becomes more present in choruses and drops back in the intro/outro.
         bass_note = root + chord[0] - 12
         for beat_no in (0, 2):
             start = bar_start + beat_no * beat
-            if start < duration:
+            if start < duration and not (section_name == "Intro" and beat_no == 2):
                 _add_tone(mix, start, min(beat * 0.85, duration - start), bass_note,
-                          0.17, "bass", rng, attack=0.008, release=0.10)
-        # A changing lead motif, with small pauses and phrase variation.
-        steps_per_bar = 8 if genre in ("EDM", "Punjabi-inspired") else 4
+                          0.17 * energy, "bass", rng, attack=0.008, release=0.10)
+
+        # Lead motif uses a denser rhythm and higher register in choruses.
+        is_chorus = section_name in ("Chorus", "Final Chorus")
+        steps_per_bar = 8 if genre in ("EDM", "Punjabi-inspired") or is_chorus else 4
         step = beat * 4.0 / steps_per_bar
         for step_no in range(steps_per_bar):
             start = bar_start + step_no * step
@@ -176,10 +206,10 @@ def generate_instrumental(title: str, genre: str = "Pop", mood: str = "Uplifting
             if rng.random() < (0.12 if mood in ("Peaceful", "Emotional") else 0.06):
                 continue
             scale_degree = rng.choice(scale)
-            octave = rng.choice((0, 12, 12, 24))
+            octave = rng.choice((0, 12, 12, 24)) if is_chorus else rng.choice((0, 0, 12, 12))
             note = root + 12 + scale_degree + octave
             note_duration = min(step * rng.choice((0.65, 0.8, 0.95)), duration - start)
-            volume = 0.095 if genre != "Ambient" else 0.055
+            volume = (0.095 if genre != "Ambient" else 0.055) * energy
             _add_tone(mix, start, note_duration, note, volume, "pluck", rng,
                       attack=0.008, release=min(0.16, note_duration * 0.45))
 
