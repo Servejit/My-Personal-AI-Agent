@@ -1,10 +1,13 @@
 """Independent File Analyst task UI. Edit this file to change only this task."""
 from core.services import *
 
+TASK_NAME = "File Analyst"
+TASK_ICON = "📊"
+
 
 def render():
     page = "File Analyst"
-    elif page == 'File Analyst':
+    if page == 'File Analyst':
         st.subheader('File Analyst')
         st.write('Upload a CSV or Excel workbook. Files are processed by this app and are not automatically sent to an external AI service.')
         uploaded = st.file_uploader('Choose a file', type=['csv', 'xlsx', 'xls'])
