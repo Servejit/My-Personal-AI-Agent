@@ -29,6 +29,7 @@ The Gemini API has limited free-tier access for eligible models/accounts; quotas
 ## Features
 
 - Gemini-powered chat and original Punjabi song lyrics (requires `GEMINI_API_KEY`).
+- Optional sung Punjabi MP3 generation through the public ACE-Step Hugging Face demo; uses generated lyrics, style selection, and an approximate duration, then provides an MP3 download.
 - Safe arithmetic calculator (does not execute arbitrary Python).
 - CSV and Excel spreadsheet previews and summaries.
 - Notes and tasks saved in `data/notes.json` in the working environment.
@@ -43,4 +44,6 @@ The Gemini API has limited free-tier access for eligible models/accounts; quotas
 
 ## Model and cost notes
 
-The app uses the Gemini API `gemini-2.5-flash` model. The API has a limited free tier for eligible accounts, but availability and quotas can change. The app does not intentionally fall back to paid models if the request fails.
+The app uses the Gemini API model configured in `app.py` for lyrics and chat. The API has a limited free tier for eligible accounts, but availability and quotas can change. The app does not intentionally fall back to paid models if the request fails.
+
+Sung MP3 generation uses the public open-source [ACE-Step v1.5 Hugging Face Space](https://huggingface.co/spaces/ACE-Step/Ace-Step-v1.5) via `gradio_client`. It does not require a paid API key, but public demos can sleep, queue, change their API, or become unavailable. This is a best-effort free option, not a guaranteed service. If it fails, open the linked demo directly and use its Lyrics and Generate controls.
