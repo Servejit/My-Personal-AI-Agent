@@ -276,11 +276,40 @@ if page == 'Chat':
     if prompt:
         st.session_state.chat_history.append({'role': 'user', 'content': prompt})
         low = prompt.lower().strip()
+        audio_request = any(term in low for term in [
+            'mp3', 'sung song', 'sung audio', 'generate audio', 'make audio',
+            'create audio', 'song with voice', 'with vocals', 'sing this',
+            'sing it', 'generate music', 'create music', 'make a song with',
+            'ਗੀਤ ਦੀ ਆਵਾਜ਼', 'ਆਡੀਓ', 'ਐਮਪੀ3', 'ਗਾ ਕੇ'
+        ])
         if low.startswith('calculate '):
             try: response = f'Result: **{safe_calculate(prompt[10:].strip())}**'
             except Exception as exc: response = f'I could not calculate that: {exc}'
         elif low in {'help', '/help'}:
-            response = 'Ask me a question, request a Punjabi song, or use Punjabi Song Generator. You can also use the built-in calculator, File Analyst, and Notes & Tasks.'
+            response = 'Ask me a question, request a Punjabi song, or ask for a sung MP3 directly here. You can also use the built-in calculator, File Analyst, and Notes & Tasks.'
+        elif audio_request:
+            try:
+                with st.spinner('Creating lyrics and generating your sung MP3. The free public music service may take several minutes...'):
+                    lyrics = generate_with_gemini(
+                        'Create original, singable Punjabi song lyrics based on this user request. Use Gurmukhi Punjabi unless another language/script is explicitly requested. Include a short title, [Verse 1], [Chorus], [Verse 2], and [Bridge] if appropriate. Make the lyrics coherent, rhythmic, and suitable for singing. Do not imitate a specific artist. User request: ' + prompt,
+                        history=st.session_state.chat_history[:-1],
+                        system_instruction='You are a professional Punjabi songwriter. Return only an original song title and complete singable lyrics. Use natural Punjabi and a memorable chorus.'
+                    )
+                    st.session_state['chat_generated_song_lyrics'] = lyrics
+                    audio_bytes = generate_sung_mp3_with_ace_step(
+                        lyrics,
+                        'Punjabi pop and folk fusion, memorable melody, lead vocals with instrumental accompaniment, polished studio mix. ' + prompt[:500],
+                        120,
+                        'Punjabi'
+                    )
+                    st.session_state['chat_generated_song_mp3'] = audio_bytes
+                response = 'Your song lyrics and sung MP3 are ready below. Use the audio player to listen and the download button to save the MP3.'
+            except Exception as exc:
+                response = (
+                    'I tried to create the song directly in chat, but the audio generation did not finish. '
+                    'If lyrics were generated, they are shown below. You can retry your request.\n\n'
+                    f'**Details:** {exc}'
+                )
         else:
             try:
                 with st.spinner('Thinking...'):
@@ -288,17 +317,39 @@ if page == 'Chat':
                         prompt,
                         history=st.session_state.chat_history[:-1],
                         system_instruction=(
-                            'You are a helpful personal assistant. You are especially good at writing original Punjabi songs. '
+                            'You are a helpful personal assistant and an expert original Punjabi songwriter. '
                             'When asked for Punjabi lyrics, follow the requested script: Gurmukhi Punjabi or Roman Punjabi. '
-                            'Use natural, idiomatic Punjabi, a clear song structure (Mukhda/Chorus and Antara/Verses), '
-                            'consistent rhyme and rhythm, and avoid translating word-for-word from English. '
-                            'Do not claim you have generated audio; provide lyrics only unless asked otherwise. If the user asks for a sung MP3, music, beats, or audio generation, explain briefly that chat is text-only and direct them to the separate Punjabi Song Generator page and its Generate sung MP3 button. Do not tell them they must use Suno or Udio, because the app includes a best-effort free MP3 generation feature.'
+                            'Use natural, idiomatic Punjabi, a clear song structure, consistent rhyme and rhythm. '
+                            'If the user explicitly asks for MP3/audio/vocals/music generation, the app handles that request directly; do not redirect them to another page. '
+                            'Never claim audio was generated unless the app actually generated it.'
                         ),
                     )
             except Exception as exc:
                 response = f'**AI connection problem**\n\n{exc}'
         st.session_state.chat_history.append({'role': 'assistant', 'content': response})
         st.rerun()
+    if st.session_state.get('chat_generated_song_lyrics'):
+        with st.expander('🎵 Latest song lyrics', expanded=True):
+            st.markdown(st.session_state['chat_generated_song_lyrics'])
+            st.download_button(
+                'Download lyrics (.txt)',
+                st.session_state['chat_generated_song_lyrics'],
+                file_name='chat_song_lyrics.txt',
+                mime='text/plain',
+                key='download_chat_song_lyrics',
+                use_container_width=True
+            )
+    if st.session_state.get('chat_generated_song_mp3'):
+        st.markdown('### 🎤 Your sung MP3')
+        st.audio(st.session_state['chat_generated_song_mp3'], format='audio/mpeg')
+        st.download_button(
+            '⬇️ Download sung MP3',
+            data=st.session_state['chat_generated_song_mp3'],
+            file_name='chat_generated_song.mp3',
+            mime='audio/mpeg',
+            key='download_chat_song_mp3',
+            use_container_width=True
+        )
     if st.button('Clear chat history', use_container_width=True): st.session_state.pending_action = {'type': 'clear_chat'}
     if st.session_state.pending_action and st.session_state.pending_action.get('type') == 'clear_chat':
         st.warning('Confirm clearing this chat history?')
