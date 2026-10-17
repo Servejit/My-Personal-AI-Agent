@@ -36,6 +36,12 @@ The Gemini API has limited free-tier access for eligible models/accounts; quotas
 - Notes and tasks saved in `data/notes.json` in the working environment.
 - Confirmation before deleting notes or clearing chat history.
 
+## Add future tasks without editing the main app
+
+The app supports independent task plugins in the `tasks/` folder. To add a task, copy `tasks/_template.py` to a new Python file (for example, `tasks/weather_task.py`), set a unique `TASK_NAME`, optionally set `TASK_ICON`, and implement its `render()` function. The task will appear automatically in the Workspace sidebar after the app reloads. Read [tasks/README.md](tasks/README.md) for the full instructions.
+
+Keep widget keys, session-state keys, files, and outputs namespaced to each task. Plugin code shares the same Python process and machine resources, so this improves organization and limits ordinary UI errors but is not a security sandbox.
+
 ## Privacy and limitations
 
 - No paid AI API is required for the built-in tools.
