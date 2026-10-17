@@ -6,3 +6,4 @@ openpyxl
 gradio_client>=1.5.0
 pydub>=0.25.1
 imageio-ffmpeg>=0.5.1
+Pillow
