@@ -82,143 +82,121 @@ def generate_with_gemini(prompt, history=None, system_instruction=None):
 
 
 def generate_sung_mp3_with_ace_step(lyrics, style, duration_seconds=120, language='Punjabi'):
-    """Use the public, open-source ACE-Step Hugging Face Space when available.
+    """Generate a sung song through the public ACE-Step hosted API.
 
-    This is a community-hosted free demo, not a guaranteed uptime service. No API key
-    is needed. It may queue, sleep, or be temporarily unavailable.
+    The public demo is free to try but is community-hosted and may be busy,
+    sleeping, or unavailable. No API key is required by this app.
     """
-    import io
+    import time
+    from urllib.parse import urljoin
+
     import requests
-    from gradio_client import Client
 
-    space_id = "ACE-Step/Ace-Step-v1.5"
-    client = Client(space_id, verbose=False)
+    base_url = "https://ace-step-ace-step-v1-5.hf.space"
+    language_codes = {
+        "Punjabi": "pa", "Hindi": "hi", "English": "en",
+        "Spanish": "es", "Bengali": "bn",
+    }
+    payload = {
+        "caption": (
+            f"{language} song, {style}, full song with lead vocals and instrumental "
+            "accompaniment, rhythmic drums, bass, polished studio mix, natural pronunciation"
+        ),
+        "lyrics": str(lyrics),
+        "thinking": True,
+        "vocal_language": language_codes.get(language, language.lower()),
+        "audio_format": "mp3",
+        "audio_duration": int(duration_seconds),
+        "inference_steps": 8,
+        "use_random_seed": True,
+        "task_type": "text2music",
+    }
+
     try:
-        api_info = client.view_api(return_format="dict")
-    except TypeError:
-        api_info = client.view_api()
-
-    if not isinstance(api_info, dict):
-        raise RuntimeError(
-            "Could not inspect the music generator API. Open the ACE-Step demo directly: "
-            "https://huggingface.co/spaces/ACE-Step/Ace-Step-v1.5"
+        response = requests.post(
+            f"{base_url}/v1/music/generate",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=60,
         )
-
-    endpoints = api_info.get("named_endpoints") or api_info.get("named_endpoints_info") or {}
-    if not endpoints:
-        raise RuntimeError(
-            "The free ACE-Step demo does not currently expose a callable API. "
-            "Try again later or use https://huggingface.co/spaces/ACE-Step/Ace-Step-v1.5"
-        )
-
-    candidates = []
-    for endpoint_name, info in endpoints.items():
-        text = (str(endpoint_name) + " " + str(info.get("description", "")) + " " +
-                str(info.get("parameters", ""))).lower()
-        if any(word in text for word in ("generate", "text2music", "text_to_music", "music generation")):
-            candidates.append((endpoint_name, info))
-    if not candidates:
-        raise RuntimeError(
-            "The free ACE-Step demo's generation endpoint was not found. "
-            "Open the demo directly: https://huggingface.co/spaces/ACE-Step/Ace-Step-v1.5"
-        )
-
-    endpoint_name, endpoint_info = candidates[0]
-    params = endpoint_info.get("parameters", [])
-    if isinstance(params, dict):
-        params = params.get("parameters", [])
-    args = []
-    style_prompt = (
-        f"{language} song, {style}, melodic lead vocals, clear singing, "
-        "rhythmic drums, bass, polished studio mix, natural pronunciation"
-    )
-
-    for param in params:
-        if not isinstance(param, dict):
-            args.append(None)
-            continue
-        pname = str(param.get("parameter_name") or param.get("label") or param.get("name") or "").lower()
-        default = param.get("parameter_default")
-        has_default = param.get("parameter_has_default", "parameter_default" in param)
-        if "lyric" in pname:
-            value = lyrics
-        elif any(k in pname for k in ("caption", "tags", "style", "prompt", "description")):
-            value = style_prompt
-        elif "duration" in pname or pname in ("seconds", "length"):
-            value = int(duration_seconds)
-        elif "vocal_language" in pname or pname in ("language", "lang"):
-            value = {"Punjabi": "pa", "Hindi": "hi", "English": "en", "Spanish": "es", "Bengali": "bn"}.get(language, language.lower())
-        elif "instrumental" in pname:
-            value = False
-        elif "batch_size" in pname or "num_samples" in pname:
-            value = 1
-        elif pname == "bpm" or "tempo" in pname:
-            value = 100
-        elif "format" in pname and "audio" in pname:
-            value = "mp3"
-        elif has_default:
-            value = default
-        else:
-            value = None
-        args.append(value)
-
-    result = client.predict(*args, api_name=endpoint_name)
-
-    file_candidates = []
-    def collect_files(obj):
-        if isinstance(obj, str):
-            if obj.startswith("http://") or obj.startswith("https://"):
-                if any(ext in obj.lower().split("?")[0] for ext in (".mp3", ".wav", ".flac", ".ogg", ".m4a")):
-                    file_candidates.append(obj)
-            elif Path(obj).is_file() and Path(obj).suffix.lower() in (".mp3", ".wav", ".flac", ".ogg", ".m4a"):
-                file_candidates.append(obj)
-        elif isinstance(obj, dict):
-            for key, value in obj.items():
-                if key.lower() in ("path", "url", "audio", "name") and isinstance(value, str):
-                    collect_files(value)
-                else:
-                    collect_files(value)
-        elif isinstance(obj, (list, tuple)):
-            for value in obj:
-                collect_files(value)
-
-    collect_files(result)
-    if not file_candidates:
-        raise RuntimeError(
-            "The music service responded but did not return a downloadable audio file. "
-            "It may be busy or its API may have changed; try again later."
-        )
-
-    audio_ref = file_candidates[0]
-    if audio_ref.startswith(("http://", "https://")):
-        response = requests.get(audio_ref, timeout=120)
         response.raise_for_status()
-        audio_bytes = response.content
-        suffix = audio_ref.lower().split("?")[0].rsplit(".", 1)[-1]
-    else:
-        audio_path = Path(audio_ref)
-        audio_bytes = audio_path.read_bytes()
-        suffix = audio_path.suffix.lower().lstrip(".")
-
-    if suffix == "mp3":
-        return audio_bytes
-
-    # Convert other supported audio formats to MP3 for the requested download.
-    try:
-        import imageio_ffmpeg
-        from pydub import AudioSegment
-        import os
-        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-        AudioSegment.converter = ffmpeg_exe
-        audio = AudioSegment.from_file(io.BytesIO(audio_bytes), format=suffix or "wav")
-        output = io.BytesIO()
-        audio.export(output, format="mp3", bitrate="192k")
-        return output.getvalue()
-    except Exception as exc:
+        task = response.json()
+    except requests.RequestException as exc:
         raise RuntimeError(
-            "The service returned audio, but MP3 conversion failed. "
-            "Please try again; the demo may have returned an unsupported audio format."
+            "Could not submit the song to the free ACE-Step service. "
+            "The public demo may be sleeping or unavailable. Try again later. "
+            f"Details: {exc}"
         ) from exc
+    except ValueError as exc:
+        raise RuntimeError("The music service returned an invalid response.") from exc
+
+    job_id = task.get("job_id") or task.get("task_id")
+    if not job_id:
+        raise RuntimeError(
+            "The music service did not return a job ID. "
+            f"Response: {str(task)[:500]}"
+        )
+
+    progress = None
+    deadline = time.monotonic() + 900
+    while time.monotonic() < deadline:
+        try:
+            status_response = requests.get(
+                f"{base_url}/v1/jobs/{job_id}", timeout=30
+            )
+            status_response.raise_for_status()
+            status_data = status_response.json()
+        except requests.RequestException as exc:
+            raise RuntimeError(f"Could not check music-generation status: {exc}") from exc
+
+        status = str(status_data.get("status", "")).lower()
+        if status == "failed":
+            raise RuntimeError(
+                "The music service reported a generation failure: "
+                + str(status_data.get("error") or status_data.get("result") or "Unknown error")[:700]
+            )
+        if status in {"succeeded", "success", "completed"}:
+            result = status_data.get("result") or {}
+            audio_path = result.get("first_audio_path")
+            if not audio_path:
+                paths = result.get("audio_paths") or []
+                audio_path = paths[0] if paths else None
+            if isinstance(audio_path, dict):
+                audio_path = audio_path.get("url") or audio_path.get("path")
+            if not audio_path:
+                raise RuntimeError(
+                    "Generation finished, but the service returned no audio path."
+                )
+
+            if str(audio_path).startswith(("http://", "https://")):
+                audio_url = str(audio_path)
+            else:
+                audio_url = f"{base_url}/v1/audio"
+                audio_response = requests.get(
+                    audio_url, params={"path": str(audio_path)}, timeout=180
+                )
+                audio_response.raise_for_status()
+                if not audio_response.content:
+                    raise RuntimeError("The generated audio download was empty.")
+                return audio_response.content
+
+            audio_response = requests.get(audio_url, timeout=180)
+            audio_response.raise_for_status()
+            if not audio_response.content:
+                raise RuntimeError("The generated audio download was empty.")
+            return audio_response.content
+
+        # Surface a useful error if the service uses an unexpected status.
+        if status and status not in {"queued", "running", "pending", "processing"}:
+            raise RuntimeError(
+                f"Unexpected music job status: {status}. "
+                f"{str(status_data)[:400]}"
+            )
+        time.sleep(3)
+
+    raise RuntimeError(
+        "Music generation took longer than 15 minutes. The public demo may be busy; please try again later."
+    )
 
 
 def load_notes():
@@ -333,7 +311,7 @@ if page == 'Chat':
 
 elif page == 'Punjabi Song Generator':
     st.subheader('🎵 Punjabi Song Generator')
-    st.write('Create original Punjabi lyrics with a connected language model. This generates lyrics, not a sung audio file.')
+    st.write('Write original Punjabi lyrics, then use the sung-MP3 generator below to create vocals and instrumental accompaniment.')
     if not get_gemini_api_key():
         st.warning('Connect Gemini first to generate songs.')
         st.markdown('1. Open [Google AI Studio API keys](https://aistudio.google.com/apikey).')
