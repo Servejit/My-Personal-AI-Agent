@@ -355,3 +355,10 @@ def render():
                 use_container_width=True,
                 key=WIDGET_PREFIX + "download_svg",
             )
+            # Streamlit's code block includes a built-in Copy button.
+            with st.expander("📋 Copy poster SVG code"):
+                st.caption("Use the Copy icon on the code block to copy the complete vector poster source.")
+                st.code(svg_bytes.decode("utf-8"), language="xml")
+            with st.expander("📋 Copy poster text"):
+                st.caption("Use the Copy icon on the code block to copy the text used for this poster.")
+                st.code(content.strip(), language="text")
