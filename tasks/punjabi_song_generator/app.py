@@ -173,7 +173,7 @@ def render():
             st.download_button('Download lyrics (.txt)', st.session_state['last_punjabi_song'], file_name='punjabi_song_lyrics.txt', mime='text/plain', use_container_width=True)
 
             st.markdown('### 🎤 Turn these lyrics into a sung MP3')
-            st.warning('Sung MP3 generation is not available offline in this version. It requires installing and running a separate local music-generation model. This button will not contact an external service.')
+            st.info('To generate a sung MP3 locally, open the AI Music Studio task. It connects only to your own local ACE-Step engine and never falls back to a hosted music API.')
             mp3_style = st.selectbox(
                 'Song sound',
                 ['Punjabi Bhangra / upbeat pop', 'Romantic Punjabi melody', 'Sad / emotional Punjabi song',
@@ -187,4 +187,8 @@ def render():
                 format_func=lambda seconds: f'{seconds} seconds',
                 key='mp3_song_duration'
             )
-            st.button('🎵 Generate sung MP3 (offline model not installed)', disabled=True, use_container_width=True)
+            if st.button('🎧 Open instructions for local music generation', use_container_width=True):
+                st.session_state['show_local_music_instructions'] = True
+            if st.session_state.get('show_local_music_instructions'):
+                st.markdown('Open the AI Music Studio task from the app menu. Install ACE-Step 1.5 locally using the setup instructions in LOCAL_AI.md, then start its API server on port 8001.')
+                st.markdown('[Local music engine setup](https://github.com/Servejit/My-Personal-AI-Agent/blob/main/LOCAL_AI.md)')
