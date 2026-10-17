@@ -9,32 +9,23 @@ python -m pip install -r requirements.txt
 python -m streamlit run app.py --server.address 0.0.0.0 --server.port 8501
 ```
 
-## Suno-style local music studio
+## Built-in Python Music Studio
 
-`tasks/ai_music_studio/app.py` provides a Suno-style creation interface with song descriptions, genre/mood, vocal arrangement, language, duration, BPM, lyrics input, seed, MP3 playback and download. It is designed to send generation requests only to a local ACE-Step server at `http://127.0.0.1:8001`. It blocks remote generation hosts; it does not call Suno, Gemini, or hosted Hugging Face inference.
+`tasks/ai_music_studio/app.py` uses `core/procedural_music.py`, an original procedural music engine written in Python using only the standard library. It synthesizes chord pads, a changing melody, bass and percussion, and lets you play and download the result as a WAV file. It does not require ACE-Step, Suno, a model download, API keys, or a separate server.
 
-To install the local music engine on a suitable computer:
+Choose a genre (Pop, Cinematic, Lo-fi, EDM, Punjabi-inspired or Ambient), mood, duration, BPM and variation seed. Change the seed to create a different arrangement.
 
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-git clone https://github.com/ace-step/ACE-Step-1.5.git
-cd ACE-Step-1.5
-uv sync
-uv run acestep-api
-```
+**Current capability limit:** this is an algorithmic instrumental composer, not a trained text-to-music neural network. Lyrics can be saved alongside the track but are not sung. Realistic singing and natural-language-driven full-song generation are not provided by this from-scratch version. Its audio is synthesized locally by Python.
 
-Start the engine and leave it running on port 8001. On first start, model weights are downloaded once; inference then runs locally. Full music generation needs significant disk space and compute. Free GitHub Codespaces may not have sufficient GPU/RAM and may be unsuitable for full-length music.
+## Local AI (no external AI API required)
 
-Official project and hardware guidance: https://github.com/ace-step/ACE-Step-1.5
-
-## Local AI (no Gemini API required)
-
-External AI services are disabled by default. For local text generation, download a suitable GGUF instruct model, install `requirements-local.txt`, and set `LOCAL_MODEL_PATH`. Follow [LOCAL_AI.md](LOCAL_AI.md). Model weights are not committed to GitHub.
+External AI services are disabled by default. For optional local text generation, download a suitable GGUF instruct model, install `requirements-local.txt`, and set `LOCAL_MODEL_PATH`. Follow [LOCAL_AI.md](LOCAL_AI.md). Model weights are not committed to GitHub.
 
 ## Tasks
 
 - `tasks/chat/app.py` — assistant chat and poster-by-command workflow.
-- `tasks/ai_music_studio/app.py` — local-first Suno-style music studio.
+- `tasks/ai_music_studio/app.py` — built-in Python instrumental music studio.
+- `core/procedural_music.py` — original standard-library audio synthesizer.
 - `tasks/punjabi_song_generator/app.py` — offline Punjabi lyric writer.
 - `tasks/file_analyst/app.py` — local CSV/Excel analysis.
 - `tasks/calculator/app.py` — safe arithmetic calculator.
@@ -44,4 +35,4 @@ External AI services are disabled by default. For local text generation, downloa
 
 ## Honest capability limits
 
-Python code provides the UI and workflow, but music generation requires a specialist music model. ACE-Step is an open-source option that can run locally; hardware support and speed vary. The offline lyric starter is template-based rather than a full language model. Poster Maker creates typography/shape-based PNG graphics locally and does not create photorealistic artwork.
+This app's music engine is original procedural Python code, not Suno-level generative AI. It creates instrumental WAV audio without a model or network connection. The offline lyric starter is template-based rather than a full language model. Poster Maker creates typography/shape-based PNG graphics locally and does not create photorealistic artwork.
