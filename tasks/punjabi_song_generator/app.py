@@ -1,10 +1,13 @@
 """Independent Punjabi Song Generator task UI. Edit this file to change only this task."""
 from core.services import *
 
+TASK_NAME = "Punjabi Song Generator"
+TASK_ICON = "🎵"
+
 
 def render():
     page = "Punjabi Song Generator"
-    elif page == 'Punjabi Song Generator':
+    if page == 'Punjabi Song Generator':
         st.subheader('🎵 Punjabi Song Generator')
         st.write('Write original Punjabi lyrics, then use the sung-MP3 generator below to create vocals and instrumental accompaniment.')
         if not get_gemini_api_key():
