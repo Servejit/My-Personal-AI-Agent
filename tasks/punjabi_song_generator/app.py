@@ -10,12 +10,10 @@ def render():
     if page == 'Punjabi Song Generator':
         st.subheader('🎵 Punjabi Song Generator')
         st.write('Write original Punjabi lyrics, then use the sung-MP3 generator below to create vocals and instrumental accompaniment.')
-        if not get_gemini_api_key():
-            st.warning('Connect Gemini first to generate songs.')
-            st.markdown('1. Open [Google AI Studio API keys](https://aistudio.google.com/apikey).')
-            st.markdown('2. Create an API key using the free tier if available for your account.')
-            st.markdown('3. In your GitHub Codespace, open the **Secrets** panel and add a secret named `GEMINI_API_KEY` with your key as its value.')
-            st.markdown('4. Restart the Streamlit app. Never put the key in app.py or a public GitHub file.')
+        from core.local_ai import local_model_status
+        if not local_model_status().get('ready'):
+            st.warning('Configure a local GGUF language model to generate lyrics without an external API.')
+            st.markdown('[Follow LOCAL_AI.md setup instructions](https://github.com/Servejit/My-Personal-AI-Agent/blob/main/LOCAL_AI.md). External AI is disabled by default.']
         with st.form('punjabi_song_form'):
             song_topic = st.text_input('Song topic / story', placeholder='Example: hard work, love, village life, friendship')
             script = st.selectbox('Lyrics script', ['Punjabi (Gurmukhi)', 'Roman Punjabi (English letters)', 'Punjabi with a little Hindi'])
