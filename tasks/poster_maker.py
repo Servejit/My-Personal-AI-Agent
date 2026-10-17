@@ -4,6 +4,7 @@ Creates downloadable social posters locally with Pillow. No paid image API is re
 """
 
 from io import BytesIO
+import html
 import math
 import re
 import textwrap
@@ -163,6 +164,86 @@ def _render_poster(content, title, subtitle, theme_name, format_name, footer):
     return output.getvalue()
 
 
+
+def _render_svg_poster(content, title, subtitle, theme_name, format_name, footer):
+    """Create a real, scalable SVG poster that can be downloaded and edited."""
+    width, height = (1080, 1350) if format_name == "Portrait (4:5)" else (1080, 1080)
+    top, bottom, foreground, accent = THEMES[theme_name]
+    rgb = lambda value: "#{:02x}{:02x}{:02x}".format(*value)
+    top_hex, bottom_hex = rgb(top), rgb(bottom)
+    fg_hex, accent_hex = rgb(foreground), rgb(accent)
+
+    title = (title or "").strip()
+    if not title:
+        title = re.split(r"[.!?\\n]", content.strip(), maxsplit=1)[0].strip() or "Your Big Idea"
+        if len(title) > 78:
+            title = title[:75].rsplit(" ", 1)[0] + "…"
+
+    def wrap_words(value, limit):
+        result, current = [], ""
+        for word in re.sub(r"\\s+", " ", value).strip().split():
+            candidate = word if not current else current + " " + word
+            if len(candidate) <= limit:
+                current = candidate
+            else:
+                if current:
+                    result.append(current)
+                current = word
+        if current:
+            result.append(current)
+        return result
+
+    title_lines = wrap_words(title, 23)[:4]
+    subtitle_lines = wrap_words(subtitle, 42)[:3] if subtitle.strip() else []
+    body_lines = []
+    for paragraph in content.strip().splitlines():
+        if paragraph.strip():
+            body_lines.extend(wrap_words(paragraph, 48))
+        else:
+            body_lines.append("")
+    max_body = max(4, int((height - 570) / 42))
+    if len(body_lines) > max_body:
+        body_lines = body_lines[:max_body]
+        body_lines[-1] = body_lines[-1].rstrip(" .") + "…"
+
+    elements = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+        '<title>Personal AI Agent poster</title>',
+        '<defs><linearGradient id="background" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + top_hex + '"/><stop offset="100%" stop-color="' + bottom_hex + '"/></linearGradient>',
+        '<radialGradient id="glow"><stop offset="0%" stop-color="' + accent_hex + '" stop-opacity=".65"/><stop offset="100%" stop-color="' + accent_hex + '" stop-opacity="0"/></radialGradient></defs>',
+        '<rect width="100%" height="100%" fill="url(#background)"/>',
+        f'<circle cx="{width-80}" cy="60" r="330" fill="url(#glow)"/>',
+        f'<circle cx="35" cy="{height-50}" r="260" fill="url(#glow)" opacity=".55"/>',
+        f'<rect x="58" y="58" width="{width-116}" height="{height-116}" rx="34" fill="none" stroke="{fg_hex}" stroke-opacity=".55" stroke-width="3"/>',
+        f'<rect x="82" y="84" width="158" height="12" rx="6" fill="{accent_hex}"/>',
+    ]
+    y = 175
+    for line in title_lines:
+        elements.append(f'<text x="92" y="{y}" font-family="Arial, Helvetica, sans-serif" font-size="66" font-weight="800" fill="{fg_hex}">{html.escape(line)}</text>')
+        y += 76
+    for line in subtitle_lines:
+        y += 5
+        elements.append(f'<text x="92" y="{y}" font-family="Arial, Helvetica, sans-serif" font-size="32" fill="{accent_hex}">{html.escape(line)}</text>')
+        y += 43
+    y += 25
+    elements.append(f'<rect x="92" y="{y}" width="116" height="8" rx="4" fill="{accent_hex}"/>')
+    y += 55
+    body_end = height - 200
+    for line in body_lines:
+        if y > body_end:
+            break
+        if line:
+            elements.append(f'<text x="92" y="{y}" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="{fg_hex}">{html.escape(line)}</text>')
+        y += 42
+    footer_y = height - 164
+    elements.append(f'<path d="M92 {footer_y} H{width-92}" stroke="{fg_hex}" stroke-opacity=".55" stroke-width="2"/>')
+    if footer.strip():
+        for idx, line in enumerate(wrap_words(footer.strip(), 55)[:2]):
+            elements.append(f'<text x="92" y="{footer_y+42+idx*32}" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="{accent_hex}">{html.escape(line)}</text>')
+    elements.append('</svg>')
+    return "\\n".join(elements).encode("utf-8")
+
+
 def render():
     st.write("Turn text you give your agent—or a recent Chat message—into a downloadable poster.")
     st.caption("The poster is designed locally with typography, colour, and shapes. No paid image API is needed.")
@@ -243,9 +324,13 @@ def render():
                     poster_bytes = _render_poster(
                         content.strip(), title, subtitle, theme, format_name, footer
                     )
+                svg_bytes = _render_svg_poster(
+                    content.strip(), title, subtitle, theme, format_name, footer
+                )
                 st.session_state[WIDGET_PREFIX + "image"] = poster_bytes
+                st.session_state[WIDGET_PREFIX + "svg"] = svg_bytes
                 st.session_state[WIDGET_PREFIX + "filename"] = "personal_agent_poster.png"
-                st.success("Poster created.")
+                st.success("Poster created. Download it as PNG or scalable SVG below.")
             except Exception as exc:
                 st.error(f"Could not create the poster: {exc}")
 
@@ -260,3 +345,13 @@ def render():
             use_container_width=True,
             key=WIDGET_PREFIX + "download",
         )
+        svg_bytes = st.session_state.get(WIDGET_PREFIX + "svg")
+        if svg_bytes:
+            st.download_button(
+                "⬇️ Download editable vector poster (SVG)",
+                data=svg_bytes,
+                file_name="personal_agent_poster.svg",
+                mime="image/svg+xml",
+                use_container_width=True,
+                key=WIDGET_PREFIX + "download_svg",
+            )
