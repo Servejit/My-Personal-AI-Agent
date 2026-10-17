@@ -30,6 +30,7 @@ The Gemini API has limited free-tier access for eligible models/accounts; quotas
 
 - Gemini-powered chat and original Punjabi song lyrics (requires `GEMINI_API_KEY`).
 - Ask for a sung MP3 directly in **Chat**: the app writes Punjabi lyrics, requests a sung track with instrumental accompaniment, and shows an audio player plus MP3 download when generation succeeds.
+- **Generate a poster directly from Chat:** type a command such as `Create a ruby-red poster for my cardamom brand, with the headline Fresh Green Cardamom and a premium glossy style`. The agent prepares poster copy and creates a real PNG image in the app, with a preview and **Download generated poster (PNG)** button. The poster renderer runs locally with Pillow; Gemini helps format the content when configured.
 - AI Music Studio and Punjabi Song Generator remain available for more control over language, style, lyrics, and duration.
 - Safe arithmetic calculator (does not execute arbitrary Python).
 - CSV and Excel spreadsheet previews and summaries.
