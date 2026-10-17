@@ -4,6 +4,7 @@ import ast
 import operator
 from datetime import datetime
 from pathlib import Path
+import importlib.util
 
 import pandas as pd
 import streamlit as st
@@ -16,6 +17,41 @@ DATA_DIR.mkdir(exist_ok=True)
 NOTES_FILE = DATA_DIR / 'notes.json'
 
 st.set_page_config(page_title=APP_NAME, page_icon='🤖', layout='wide')
+
+
+def load_task_plugins():
+    """Load optional task modules from tasks/*.py without changing core tools."""
+    tasks_dir = Path(__file__).parent / "tasks"
+    tasks_dir.mkdir(exist_ok=True)
+    loaded = []
+    errors = []
+    for task_file in sorted(tasks_dir.glob("*.py")):
+        if task_file.name.startswith("_") or task_file.name == "__init__.py":
+            continue
+        module_name = f"personal_agent_task_{task_file.stem}"
+        try:
+            spec = importlib.util.spec_from_file_location(module_name, task_file)
+            if spec is None or spec.loader is None:
+                raise ImportError("Could not create a module loader.")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            task_name = str(getattr(module, "TASK_NAME", "")).strip()
+            render = getattr(module, "render", None)
+            if not task_name:
+                raise ValueError("Define a non-empty TASK_NAME in this task file.")
+            if not callable(render):
+                raise ValueError("Define a callable render() function in this task file.")
+            if any(item["name"].casefold() == task_name.casefold() for item in loaded):
+                raise ValueError(f"Another task already uses the name {task_name!r}.")
+            loaded.append({
+                "name": task_name,
+                "icon": str(getattr(module, "TASK_ICON", "🧩")),
+                "render": render,
+                "file": task_file.name,
+            })
+        except Exception as exc:
+            errors.append(f"{task_file.name}: {exc}")
+    return loaded, errors
 
 st.markdown('''
 <style>
@@ -242,14 +278,14 @@ def dataframe_summary(df):
         lines.append(numeric.describe().round(3).to_string())
     return '\n'.join(lines)
 
-if 'chat_history' not in st.session_state: st.session_state.chat_history = []
+TASK_PLUGINS, TASK_PLUGIN_ERRORS = load_task_plugins()\nTASK_PLUGIN_MAP = {item['name']: item for item in TASK_PLUGINS}\nCORE_PAGES = ['Chat', 'AI Music Studio', 'Punjabi Song Generator', 'File Analyst', 'Calculator', 'Notes & Tasks', 'Settings']\nWORKSPACE_PAGES = CORE_PAGES + [item['name'] for item in TASK_PLUGINS]\n\nif 'chat_history' not in st.session_state: st.session_state.chat_history = []
 if 'pending_action' not in st.session_state: st.session_state.pending_action = None
 if 'notes' not in st.session_state: st.session_state.notes = load_notes()
 
 with st.sidebar:
     st.title('🤖 Personal Agent')
     st.caption('Free-first • Human approval for important actions')
-    page = st.radio('Workspace', ['Chat', 'AI Music Studio', 'Punjabi Song Generator', 'File Analyst', 'Calculator', 'Notes & Tasks', 'Settings'], label_visibility='collapsed')
+    page = st.radio('Workspace', WORKSPACE_PAGES, label_visibility='collapsed')
     st.divider()
     st.markdown('**Current capabilities**')
     st.write("✓ AI music studio: lyrics + sung MP3")
@@ -258,6 +294,11 @@ with st.sidebar:
     st.write('✓ Safe arithmetic calculator')
     st.write('✓ Local notes and task list')
     st.write('✓ Confirmation before deleting notes')
+    st.write(f'✓ Independent task plugins: {len(TASK_PLUGINS)}')
+    if TASK_PLUGIN_ERRORS:
+        with st.expander('Task plugin loading warnings'):
+            for plugin_error in TASK_PLUGIN_ERRORS:
+                st.warning(plugin_error)
     st.caption('Gemini AI: connected' if get_gemini_api_key() else 'Gemini AI: API key needed')
 
 st.title('🤖 My Personal AI Agent')
@@ -593,6 +634,17 @@ elif page == 'Settings':
     st.write(f"Gemini API key configured: {'Yes' if get_gemini_api_key() else 'No'}")
     st.markdown('To connect the model, create a key at [Google AI Studio](https://aistudio.google.com/apikey), then add it as the Codespaces secret **GEMINI_API_KEY**. Do not commit the key to GitHub.')
     st.caption('The Gemini API has a limited free tier for eligible models/accounts; quotas and terms may change. Check Google AI Studio pricing and limits before use.')
+
+
+elif page in TASK_PLUGIN_MAP:
+    selected_plugin = TASK_PLUGIN_MAP[page]
+    st.subheader(f"{selected_plugin['icon']} {selected_plugin['name']}")
+    st.caption(f"Independent task module: tasks/{selected_plugin['file']}")
+    try:
+        selected_plugin["render"]()
+    except Exception as exc:
+        st.error(f"Task '{selected_plugin['name']}' encountered an error: {exc}")
+        st.info("Other built-in tools and task modules remain separate. Fix this task file and reload the app.")
 
 st.divider()
 st.caption('Personal AI Agent starter • Built-in tools run in the app • Important actions require confirmation')
