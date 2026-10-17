@@ -13,7 +13,7 @@ def render():
         from core.local_ai import local_model_status
         if not local_model_status().get('ready'):
             st.warning('Configure a local GGUF language model to generate lyrics without an external API.')
-            st.markdown('[Follow LOCAL_AI.md setup instructions](https://github.com/Servejit/My-Personal-AI-Agent/blob/main/LOCAL_AI.md). External AI is disabled by default.']
+            st.markdown('[Follow LOCAL_AI.md setup instructions](https://github.com/Servejit/My-Personal-AI-Agent/blob/main/LOCAL_AI.md). External AI is disabled by default.')
         with st.form('punjabi_song_form'):
             song_topic = st.text_input('Song topic / story', placeholder='Example: hard work, love, village life, friendship')
             script = st.selectbox('Lyrics script', ['Punjabi (Gurmukhi)', 'Roman Punjabi (English letters)', 'Punjabi with a little Hindi'])
@@ -25,8 +25,8 @@ def render():
         if make_song:
             if not song_topic.strip():
                 st.error('Please enter a song topic or story.')
-            elif not get_gemini_api_key():
-                st.error('Gemini API key is missing. Follow the setup steps above.')
+            elif not local_model_status().get('ready'):
+                st.error('Local AI is not ready. Configure LOCAL_MODEL_PATH and install requirements-local.txt; see LOCAL_AI.md.')
             else:
                 song_prompt = (
                     f'Write a completely original Punjabi song. Topic/story: {song_topic.strip()}. '
@@ -52,7 +52,7 @@ def render():
             st.download_button('Download lyrics (.txt)', st.session_state['last_punjabi_song'], file_name='punjabi_song_lyrics.txt', mime='text/plain', use_container_width=True)
     
             st.markdown('### 🎤 Turn these lyrics into a sung MP3')
-            st.write('This uses the public open-source ACE-Step music demo. It attempts to sing your lyrics with music and beats. The demo is free to try, but its queue and availability are controlled by its host; no free uptime is guaranteed.')
+            st.write('Sung MP3 generation is disabled by default because the current implementation uses a hosted service. A fully local singing model needs separate model weights and suitable hardware; see LOCAL_AI.md.')
             mp3_style = st.selectbox(
                 'Song sound',
                 ['Punjabi Bhangra / upbeat pop', 'Romantic Punjabi melody', 'Sad / emotional Punjabi song',
@@ -75,7 +75,7 @@ def render():
                     st.success('Your MP3 is ready.')
                 except Exception as exc:
                     st.error(f'Could not generate MP3: {exc}')
-                    st.markdown('[Open ACE-Step music demo directly](https://huggingface.co/spaces/ACE-Step/Ace-Step-v1.5)')
+                    st.caption('No external service is called unless ALLOW_EXTERNAL_AI=true is explicitly set.')
             if st.session_state.get('last_song_mp3'):
                 st.audio(st.session_state['last_song_mp3'], format='audio/mpeg')
                 st.download_button(
