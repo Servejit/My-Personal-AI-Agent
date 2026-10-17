@@ -27,7 +27,7 @@ def render():
         description = st.text_area(
             "Describe the sound you want",
             value="A hopeful, cinematic melody that starts gently and builds into an uplifting rhythm.",
-            help="This guides the composition style. The current engine uses the selected genre and mood to shape the instrumental.",
+            help="The text changes the generated variation, but the engine does not semantically understand the prompt like a trained music AI.",
         )
         col1, col2 = st.columns(2)
         with col1:
@@ -64,6 +64,7 @@ def render():
                     duration=duration,
                     bpm=bpm,
                     seed=int(seed),
+                    prompt=description.strip(),
                 )
             except Exception as exc:
                 st.error(f"Music generation failed: {exc}")
