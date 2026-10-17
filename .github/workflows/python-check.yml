@@ -18,3 +18,27 @@ jobs:
           python-version: "3.12"
       - name: Compile all Python modules
         run: python -m compileall -q app.py core tasks
+
+      - name: Smoke test built-in Python music generator
+        run: |
+          python - <<'PY'
+          import io
+          import wave
+          from core.procedural_music import generate_instrumental
+
+          audio = generate_instrumental(
+              title="CI smoke test",
+              genre="Ambient",
+              mood="Peaceful",
+              duration=8,
+              bpm=90,
+              seed=17,
+              prompt="soft and calm",
+          )
+          with wave.open(io.BytesIO(audio), "rb") as track:
+              assert track.getnchannels() == 1
+              assert track.getsampwidth() == 2
+              assert track.getframerate() == 16000
+              assert track.getnframes() == 8 * 16000
+          print("Music generator smoke test passed.")
+          PY
