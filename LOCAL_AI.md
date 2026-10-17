@@ -1,6 +1,6 @@
 # Local AI mode (no external AI APIs)
 
-This repository is designed to work local-first. External AI calls are not needed for the offline lyric starter, calculator, file analysis, notes, or graphic poster renderer.
+This repository is designed to work local-first. External AI calls are not needed for the offline lyric starter, calculator, file analysis, notes, graphic poster renderer, or built-in procedural instrumental composer.
 
 ## Local text generation
 
@@ -19,33 +19,22 @@ export LOCAL_MODEL_PATH="$HOME/models/your-model.gguf"
 python -m streamlit run app.py --server.address 0.0.0.0 --server.port 8501
 ```
 
-## Suno-style local music generation
+## Built-in Python Music Studio
 
-The AI Music Studio integrates with the open-source ACE-Step 1.5 server running locally. It deliberately refuses non-local generation hosts, so song prompts and lyrics are not sent to hosted inference services.
+The AI Music Studio calls `core/procedural_music.py`, a from-scratch algorithmic synthesizer built using Python's standard library. It generates chord layers, a melodic lead, bass, and simple percussion, then provides a downloadable WAV file.
 
-Install the local engine on a suitable machine:
+No ACE-Step, Suno, remote inference, music API, model download, or API key is used. Music is generated inside the Streamlit Python process.
 
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-git clone https://github.com/ace-step/ACE-Step-1.5.git
-cd ACE-Step-1.5
-uv sync
-uv run acestep-api
-```
-
-Keep the engine running at `http://127.0.0.1:8001`, then open the Streamlit AI Music Studio. Model weights are downloaded on first startup; subsequent inference runs locally. To use another local port, set `ACESTEP_API_BASE` to a localhost URL. The app blocks non-local hosts.
-
-**Hardware note:** ACE-Step is a specialist music-generation model. It requires substantial storage and compute; a GPU is recommended. Free Codespaces or a phone alone may not be capable of generating full songs reliably. If Streamlit runs in Codespaces but ACE-Step runs on another computer, a secure local network tunnel would be required; this app intentionally does not accept remote hosts by default.
-
-Official install and GPU guidance: https://github.com/ace-step/ACE-Step-1.5
+**Current limitations:** the engine creates instrumental music only. Lyrics are stored as notes and are not sung; it is not a neural text-to-music model and does not yet produce natural vocals or interpret arbitrary prompts like Suno. Duration is limited to 8–60 seconds to keep generation practical in a small app runtime.
 
 ## What works without a model
 
 - Punjabi and basic multilingual lyric starter templates.
+- Original procedural instrumental music rendered as WAV.
 - Calculator and local file analysis.
 - Notes and tasks, subject to the host filesystem's persistence.
 - Typography/shape-based poster graphics via Pillow.
 
 ## Privacy
 
-The local music studio does not use Suno, Gemini, hosted Hugging Face Spaces, or remote inference endpoints. External AI providers elsewhere in the repository remain disabled by default. Do not enable external providers unless you explicitly want prompts or content sent to those services.
+The built-in music engine runs locally and makes no network requests. External AI providers elsewhere in the repository remain disabled by default. Do not enable external providers unless you explicitly want prompts or content sent to those services.
