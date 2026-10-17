@@ -1,0 +1,4 @@
+# Optional dependency for running a downloaded GGUF language model locally.
+# Install separately when you want local AI inference; it can take time on CPU-only machines.
+-r requirements.txt
+llama-cpp-python>=0.3.8
