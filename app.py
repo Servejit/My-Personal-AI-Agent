@@ -56,7 +56,7 @@ def generate_with_gemini(prompt, history=None, system_instruction=None):
     payload = {"contents": contents, "generationConfig": {"temperature": 0.85, "maxOutputTokens": 2500}}
     if system_instruction:
         payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent"
     try:
         response = requests.post(
             url, params={"key": api_key}, json=payload,
