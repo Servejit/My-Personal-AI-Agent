@@ -1,9 +1,15 @@
+# Shared dependencies for the launcher and all independent task apps
 streamlit
 python-dotenv
 requests
 pandas
 openpyxl
+
+# Retained media dependencies used by the existing music workflow
+# (the public music service itself is optional and may be unavailable)
 gradio_client>=1.5.0
 pydub>=0.25.1
 imageio-ffmpeg>=0.5.1
+
+# Local PNG poster rendering (no paid image API required)
 Pillow
