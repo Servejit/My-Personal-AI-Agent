@@ -22,6 +22,11 @@ def render():
     st.write("Task-specific UI and logic go here.")
 ```
 
+## Language convention
+
+- General-purpose tasks should use clear English for labels, instructions, messages, and generated responses by default.
+- Use another language only when the user explicitly requests it or the task itself specifically requires it (for example, Punjabi song lyrics).
+
 ## Isolation rules
 
 - Keep each task in its own file. Do not edit `app.py` just to add another plugin.
