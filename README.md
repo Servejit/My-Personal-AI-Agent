@@ -11,11 +11,11 @@ python -m streamlit run app.py --server.address 0.0.0.0 --server.port 8501
 
 ## Built-in Python Music Studio
 
-`tasks/ai_music_studio/app.py` uses `core/procedural_music.py`, an original procedural music engine written in Python using only the standard library. It synthesizes chord pads, a changing melody, bass and percussion, and lets you play and download the result as a WAV file. It does not require ACE-Step, Suno, a model download, API keys, or a separate server.
+`tasks/ai_music_studio/app.py` uses `core/procedural_music.py`, an original procedural music engine written in Python using only the standard library. It synthesizes chord pads, a changing melody, bass and percussion, and lets you play and download the result as a WAV file. An optional experimental formant layer creates vowel-like robotic tones guided by lyrics; it does not produce intelligible words or realistic singing. It does not require ACE-Step, Suno, a model download, API keys, or a separate server.
 
 Choose a genre (Pop, Cinematic, Lo-fi, EDM, Punjabi-inspired or Ambient), mood, duration, BPM and variation seed. Change the seed to create a different arrangement.
 
-**Current capability limit:** this is an algorithmic instrumental composer, not a trained text-to-music neural network. Lyrics can be saved alongside the track but are not sung. Realistic singing and natural-language-driven full-song generation are not provided by this from-scratch version. Its audio is synthesized locally by Python.
+**Current capability limit:** this is an algorithmic composer, not a trained text-to-music neural network. The optional vocal layer is experimental formant synthesis and does not pronounce lyrics intelligibly. Realistic singing and semantic natural-language-to-song generation are not provided by this from-scratch version. Its audio is synthesized locally by Python.
 
 ## Local AI (no external AI API required)
 
