@@ -5,6 +5,7 @@ It creates original instrumental WAV music from chords, bass, melody and percuss
 """
 from __future__ import annotations
 
+import hashlib
 import io
 import math
 import random
@@ -93,13 +94,15 @@ def _add_drums(mix, beat_times, style, rng):
 
 
 def generate_instrumental(title: str, genre: str = "Pop", mood: str = "Uplifting",
-                          duration: int = 30, bpm: int = 100, seed: int = 7) -> bytes:
+                          duration: int = 30, bpm: int = 100, seed: int = 7, prompt: str = "") -> bytes:
     """Return an original 16-bit mono WAV as bytes."""
     duration = max(8, min(60, int(duration)))
     bpm = max(60, min(160, int(bpm)))
     genre = genre if genre in CHORDS else "Pop"
     mood = mood if mood in MOOD_SCALE else "Uplifting"
-    rng = random.Random(int(seed))
+    seed_material = f"{int(seed)}|{title}|{prompt}".encode("utf-8", errors="replace")
+    effective_seed = int.from_bytes(hashlib.sha256(seed_material).digest()[:8], "big")
+    rng = random.Random(effective_seed)
     total_samples = int(SAMPLE_RATE * duration)
     mix = [0.0] * total_samples
     beat = 60.0 / bpm
