@@ -1,7 +1,7 @@
-"""AI Music Studio: local procedural music and experimental vowel synthesis.
+"""Original from-scratch procedural music composer.
 
-No hosted music API, ACE-Step, Suno, model download, or network request is used.
-The optional vocal layer is a robotic formant tone, not intelligible singing.
+This is not Suno source code and does not use a trained text-to-music model.
+It creates a structured instrumental arrangement with optional experimental tones.
 """
 import streamlit as st
 
@@ -13,12 +13,13 @@ TASK_ICON = "🎧"
 
 def render():
     st.title("🎧 AI Music Studio")
-    st.caption("Your own Python music engine • free • local • no external AI APIs")
+    st.caption("Original Python composition engine • free • local • no external AI APIs")
     st.info(
-        "This studio creates original music locally using a Python synthesizer. It can "
-        "also add an experimental vowel-like synthetic vocal tone guided by your lyrics. "
-        "That voice layer is robotic and does not pronounce words intelligibly; it is "
-        "not realistic AI singing. No API, model download or separate server is needed."
+        "This is original code written for this project, not copied Suno code. The arranger now "
+        "shapes an instrumental track across intro, verse, chorus, final chorus and outro. "
+        "It does not yet create realistic singing or intelligibly sing lyrics: matching Suno "
+        "quality requires a trained audio-generation model and substantial training data/GPU. "
+        "No paid API or model download is used by this local version."
     )
 
     with st.form("python_music_studio_form"):
