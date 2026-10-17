@@ -5,7 +5,7 @@ from pathlib import Path
 import importlib.util
 import streamlit as st
 from dotenv import load_dotenv
-from core.services import get_gemini_api_key, load_task_plugins
+from core.services import get_gemini_api_key, load_task_plugins, load_notes
 
 load_dotenv()
 APP_NAME = "My Personal AI Agent"
@@ -56,6 +56,8 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "pending_action" not in st.session_state:
     st.session_state.pending_action = None
+if "notes" not in st.session_state:
+    st.session_state.notes = load_notes()
 
 with st.sidebar:
     st.title("🤖 Personal Agent")
