@@ -34,6 +34,7 @@ The Gemini API has limited free-tier access for eligible models/accounts; quotas
 - Safe arithmetic calculator (does not execute arbitrary Python).
 - CSV and Excel spreadsheet previews and summaries.
 - Notes and tasks saved in `data/notes.json` in the working environment.
+- **Poster Maker task:** turn pasted content or a recent Chat message into a styled portrait or square PNG poster, with a headline, subtitle, colour theme, and optional call to action. Poster rendering is local with Pillow and does not require a paid image-generation API.
 - Confirmation before deleting notes or clearing chat history.
 
 ## Add future tasks without editing the main app
