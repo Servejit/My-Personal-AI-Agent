@@ -129,8 +129,8 @@ def generate_sung_mp3_with_ace_step(lyrics, style, duration_seconds=120, languag
         params = params.get("parameters", [])
     args = []
     style_prompt = (
-        f"Punjabi song, {style}, melodic Punjabi vocals, clear lead singer, "
-        "rhythmic drums, bass, polished studio mix, Punjabi language"
+        f"{language} song, {style}, melodic lead vocals, clear singing, "
+        "rhythmic drums, bass, polished studio mix, natural pronunciation"
     )
 
     for param in params:
@@ -147,7 +147,7 @@ def generate_sung_mp3_with_ace_step(lyrics, style, duration_seconds=120, languag
         elif "duration" in pname or pname in ("seconds", "length"):
             value = int(duration_seconds)
         elif "vocal_language" in pname or pname in ("language", "lang"):
-            value = "Punjabi"
+            value = {"Punjabi": "pa", "Hindi": "hi", "English": "en", "Spanish": "es", "Bengali": "bn"}.get(language, language.lower())
         elif "instrumental" in pname:
             value = False
         elif "batch_size" in pname or "num_samples" in pname:
