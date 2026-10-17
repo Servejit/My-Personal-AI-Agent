@@ -10,11 +10,13 @@ def render():
     page = "Chat"
     if page == 'Chat':
         st.subheader('Chat with your assistant')
-        if get_gemini_api_key():
-            st.success('AI model connected through Gemini.')
+        from core.local_ai import local_model_status
+        local_status = local_model_status()
+        if local_status.get('ready'):
+            st.success('Local AI model is ready. Prompts stay in this Python process.')
         else:
-            st.warning('AI model not connected yet. Add GEMINI_API_KEY in Codespaces Secrets to enable chat and Punjabi song writing.')
-            st.markdown('[Get a Gemini API key](https://aistudio.google.com/apikey) · The API has a limited free tier; check current limits before use.')
+            st.warning('Local AI model is not configured. Chat generation needs a local GGUF model; external AI is disabled by default.')
+            st.markdown('[Open local AI setup instructions](https://github.com/Servejit/My-Personal-AI-Agent/blob/main/LOCAL_AI.md)')
         for item in st.session_state.chat_history:
             with st.chat_message(item['role']): st.markdown(item['content'])
         prompt = st.chat_input('Ask a question or request a Punjabi song')
