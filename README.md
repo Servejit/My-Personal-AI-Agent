@@ -1,6 +1,6 @@
 # My Personal AI Agent
 
-A free-first Streamlit starter for a personal assistant. The current version provides a chat shell, safe calculator, CSV/Excel analysis, and notes/tasks. A generative language model is **not connected yet**; built-in chat responses are intentionally basic.
+A free-first Streamlit personal assistant with Gemini-powered chat and a Punjabi Song Generator, plus a safe calculator, CSV/Excel analysis, and notes/tasks. Gemini requires your own API key stored securely as a Codespaces secret.
 
 ## Run in GitHub Codespaces
 
@@ -17,8 +17,18 @@ python -m pip install -r requirements.txt
 python -m streamlit run app.py --server.address 0.0.0.0 --server.port 8501
 ```
 
+## Connect the language model
+
+1. Open [Google AI Studio API keys](https://aistudio.google.com/apikey) and create an API key if the Gemini API free tier is available to your account.
+2. In your GitHub Codespace, open the **Secrets** panel (usually the key icon in the left sidebar) and add a secret named `GEMINI_API_KEY` with the API key as its value.
+3. Restart the Streamlit process. If `st.secrets` or environment variables do not refresh, stop and restart the Codespace app.
+4. Open **Punjabi Song Generator** or **Chat**. Choose Gurmukhi Punjabi or Roman Punjabi and generate lyrics.
+
+The Gemini API has limited free-tier access for eligible models/accounts; quotas and terms can change. Check [official Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing) before use. Do not commit API keys to GitHub or paste them into chat. Requests are sent to Google for generation, so do not send sensitive information.
+
 ## Features
 
+- Gemini-powered chat and original Punjabi song lyrics (requires `GEMINI_API_KEY`).
 - Safe arithmetic calculator (does not execute arbitrary Python).
 - CSV and Excel spreadsheet previews and summaries.
 - Notes and tasks saved in `data/notes.json` in the working environment.
@@ -27,10 +37,10 @@ python -m streamlit run app.py --server.address 0.0.0.0 --server.port 8501
 ## Privacy and limitations
 
 - No paid AI API is required for the built-in tools.
-- The app does not yet generate open-ended answers using an AI model.
+- AI generation requires a valid `GEMINI_API_KEY` and internet access.
 - Do not upload sensitive files to a publicly accessible deployment.
 - Codespaces and hosted environments may not preserve local note files after a rebuild or restart. Download or back up important notes.
 
-## Next development step
+## Model and cost notes
 
-Add a free/local language-model connection and keep important external actions behind explicit approval.
+The app uses the Gemini API `gemini-2.5-flash` model. The API has a limited free tier for eligible accounts, but availability and quotas can change. The app does not intentionally fall back to paid models if the request fails.
