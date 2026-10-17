@@ -1,0 +1,5 @@
+# Optional dependencies for training/running the local neural music prototype.
+# Keep separate from requirements.txt so the main Streamlit app stays lightweight.
+torch>=2.2
+mido>=1.3
+numpy>=1.26
