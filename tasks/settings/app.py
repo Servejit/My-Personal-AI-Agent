@@ -1,10 +1,13 @@
 """Independent Settings task UI. Edit this file to change only this task."""
 from core.services import *
 
+TASK_NAME = "Settings"
+TASK_ICON = "⚙️"
+
 
 def render():
     page = "Settings"
-    elif page == 'Settings':
+    if page == 'Settings':
         st.subheader('Settings and privacy')
         st.markdown('''
     - **AI provider:** Not configured yet. No paid API is called by this starter app.
