@@ -3,7 +3,7 @@ from core.services import *
 
 TASK_NAME = "Chat"
 TASK_ICON = "💬"
-from tasks import poster_maker
+from tasks import _poster_renderer
 
 
 def render():
@@ -34,7 +34,7 @@ def render():
             ])
             if poster_request:
                 try:
-                    poster_plugin = poster_maker
+                    poster_plugin = _poster_renderer
                     if poster_plugin is None:
                         raise RuntimeError("Poster Maker task is not loaded. Check tasks/poster_maker.py.")
                     poster_brief = {
