@@ -1,0 +1,86 @@
+"""Independent Punjabi Song Generator task UI. Edit this file to change only this task."""
+from core.services import *
+
+
+def render():
+    page = "Punjabi Song Generator"
+    elif page == 'Punjabi Song Generator':
+        st.subheader('🎵 Punjabi Song Generator')
+        st.write('Write original Punjabi lyrics, then use the sung-MP3 generator below to create vocals and instrumental accompaniment.')
+        if not get_gemini_api_key():
+            st.warning('Connect Gemini first to generate songs.')
+            st.markdown('1. Open [Google AI Studio API keys](https://aistudio.google.com/apikey).')
+            st.markdown('2. Create an API key using the free tier if available for your account.')
+            st.markdown('3. In your GitHub Codespace, open the **Secrets** panel and add a secret named `GEMINI_API_KEY` with your key as its value.')
+            st.markdown('4. Restart the Streamlit app. Never put the key in app.py or a public GitHub file.')
+        with st.form('punjabi_song_form'):
+            song_topic = st.text_input('Song topic / story', placeholder='Example: hard work, love, village life, friendship')
+            script = st.selectbox('Lyrics script', ['Punjabi (Gurmukhi)', 'Roman Punjabi (English letters)', 'Punjabi with a little Hindi'])
+            genre = st.selectbox('Music style', ['Modern Punjabi pop', 'Bhangra', 'Romantic', 'Sad / emotional', 'Motivational', 'Folk', 'Hip-hop / rap', 'Sufi'])
+            mood = st.selectbox('Mood', ['Energetic', 'Emotional', 'Hopeful', 'Romantic', 'Powerful', 'Peaceful'])
+            length_choice = st.selectbox('Length', ['Short (1 chorus + 2 verses)', 'Medium (1 chorus + 3 verses)', 'Long (1 chorus + 4 verses)'])
+            notes = st.text_area('Extra details (optional)', placeholder='Singer perspective, rhyme words, setting, clean language, hook line...')
+            make_song = st.form_submit_button('Generate Punjabi Song', type='primary', use_container_width=True)
+        if make_song:
+            if not song_topic.strip():
+                st.error('Please enter a song topic or story.')
+            elif not get_gemini_api_key():
+                st.error('Gemini API key is missing. Follow the setup steps above.')
+            else:
+                song_prompt = (
+                    f'Write a completely original Punjabi song. Topic/story: {song_topic.strip()}. '
+                    f'Language/script: {script}. Genre: {genre}. Mood: {mood}. Structure/length: {length_choice}. '
+                    f'Additional requirements: {notes.strip() or "Use natural Punjabi, memorable hook, strong rhymes, singable rhythm."} '
+                    'Return a title, a memorable Mukhda/Chorus, clearly labelled Antara/Verse sections, and an optional short outro. '
+                    'Keep the language natural and culturally fluent; do not use placeholder lines or repeat whole verses. '
+                    'Do not imitate a living artist or copy existing song lyrics. Output lyrics only, no audio.'
+                )
+                try:
+                    with st.spinner('Writing your Punjabi song...'):
+                        result = generate_with_gemini(
+                            song_prompt,
+                            system_instruction='You are an expert Punjabi lyricist. Write original, idiomatic, singable Punjabi lyrics with memorable hooks, coherent storytelling, natural rhyme and rhythm. Respect the requested script exactly.',
+                        )
+                    st.session_state['last_punjabi_song'] = result
+                    st.success('Song lyrics generated.')
+                except Exception as exc:
+                    st.error(f'Could not generate the song: {exc}')
+        if st.session_state.get('last_punjabi_song'):
+            st.markdown('### Your Punjabi song')
+            st.markdown(st.session_state['last_punjabi_song'])
+            st.download_button('Download lyrics (.txt)', st.session_state['last_punjabi_song'], file_name='punjabi_song_lyrics.txt', mime='text/plain', use_container_width=True)
+    
+            st.markdown('### 🎤 Turn these lyrics into a sung MP3')
+            st.write('This uses the public open-source ACE-Step music demo. It attempts to sing your lyrics with music and beats. The demo is free to try, but its queue and availability are controlled by its host; no free uptime is guaranteed.')
+            mp3_style = st.selectbox(
+                'Song sound',
+                ['Punjabi Bhangra / upbeat pop', 'Romantic Punjabi melody', 'Sad / emotional Punjabi song',
+                 'Motivational Punjabi anthem', 'Punjabi folk', 'Punjabi hip-hop / rap'],
+                key='mp3_song_style'
+            )
+            mp3_duration = st.select_slider(
+                'Approximate song length',
+                options=[30, 60, 90, 120, 150, 180],
+                value=120,
+                format_func=lambda seconds: f'{seconds} seconds',
+                key='mp3_song_duration'
+            )
+            if st.button('🎵 Generate sung MP3', type='primary', use_container_width=True):
+                try:
+                    with st.spinner('Generating singing and music on the free hosted demo. This may take several minutes...'):
+                        st.session_state['last_song_mp3'] = generate_sung_mp3_with_ace_step(
+                            st.session_state['last_punjabi_song'], mp3_style, mp3_duration
+                        )
+                    st.success('Your MP3 is ready.')
+                except Exception as exc:
+                    st.error(f'Could not generate MP3: {exc}')
+                    st.markdown('[Open ACE-Step music demo directly](https://huggingface.co/spaces/ACE-Step/Ace-Step-v1.5)')
+            if st.session_state.get('last_song_mp3'):
+                st.audio(st.session_state['last_song_mp3'], format='audio/mpeg')
+                st.download_button(
+                    '⬇️ Download sung song (.mp3)',
+                    data=st.session_state['last_song_mp3'],
+                    file_name='punjabi_song.mp3',
+                    mime='audio/mpeg',
+                    use_container_width=True
+                )
