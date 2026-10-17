@@ -69,14 +69,34 @@ def get_gemini_api_key():
         return ""
 
 def generate_with_gemini(prompt, history=None, system_instruction=None):
-    """Generate text with Gemini's API. Requires a user-provided API key."""
+    """Generate text locally by default; use Gemini only with explicit opt-in.
+
+    The legacy function name is retained so existing tasks remain compatible.
+    Set LOCAL_MODEL_PATH to a GGUF model and install requirements-local.txt.
+    Set ALLOW_EXTERNAL_AI=true only if you consent to send prompts to Gemini.
+    """
+    from core.local_ai import generate_local_text, local_model_status
+    status = local_model_status()
+    if status.get("ready"):
+        return generate_local_text(prompt, history=history, system_instruction=system_instruction)
+    allow_external = os.getenv("ALLOW_EXTERNAL_AI", "").strip().lower() in {"1", "true", "yes", "on"}
+    api_key = get_gemini_api_key()
+    if allow_external and api_key:
+        return _generate_with_gemini_external(prompt, history=history, system_instruction=system_instruction)
+    raise RuntimeError(
+        "Local AI is not configured, and external AI services are disabled by default. "
+        + status.get("reason", "")
+        + " Follow LOCAL_AI.md to install a local GGUF model. If you explicitly consent to external requests, "
+        "set ALLOW_EXTERNAL_AI=true and configure GEMINI_API_KEY."
+    )
+
+
+def _generate_with_gemini_external(prompt, history=None, system_instruction=None):
+    """Gemini provider used only when ALLOW_EXTERNAL_AI=true."""
     import requests
     api_key = get_gemini_api_key()
     if not api_key:
-        raise RuntimeError(
-            "Gemini is not connected. Create a free API key at https://aistudio.google.com/apikey, "
-            "then add it to your Codespace as GEMINI_API_KEY. Do not paste the key into chat or source code."
-        )
+        raise RuntimeError("ALLOW_EXTERNAL_AI is enabled, but GEMINI_API_KEY is missing.")
     contents = []
     for item in (history or [])[-8:]:
         if item.get("role") in ("user", "assistant") and item.get("content"):
@@ -90,10 +110,7 @@ def generate_with_gemini(prompt, history=None, system_instruction=None):
         payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent"
     try:
-        response = requests.post(
-            url, params={"key": api_key}, json=payload,
-            headers={"Content-Type": "application/json"}, timeout=90
-        )
+        response = requests.post(url, params={"key": api_key}, json=payload, headers={"Content-Type": "application/json"}, timeout=90)
     except requests.RequestException as exc:
         raise RuntimeError(f"Could not reach Gemini: {exc}") from exc
     if response.status_code != 200:
@@ -105,7 +122,7 @@ def generate_with_gemini(prompt, history=None, system_instruction=None):
     try:
         data = response.json()
         parts = data["candidates"][0]["content"]["parts"]
-        answer = "\\n".join(part.get("text", "") for part in parts if part.get("text"))
+        answer = "\n".join(part.get("text", "") for part in parts if part.get("text"))
         if not answer.strip():
             raise RuntimeError("Gemini returned an empty response. Please try again.")
         return answer.strip()
@@ -114,11 +131,9 @@ def generate_with_gemini(prompt, history=None, system_instruction=None):
 
 
 def generate_sung_mp3_with_ace_step(lyrics, style, duration_seconds=120, language='Punjabi'):
-    """Generate a sung song through the public ACE-Step hosted API.
-
-    The public demo is free to try but is community-hosted and may be busy,
-    sleeping, or unavailable. No API key is required by this app.
-    """
+    """Generate a sung song only after explicit opt-in to external service use."""
+    if os.getenv("ALLOW_EXTERNAL_AI", "").strip().lower() not in {"1", "true", "yes", "on"}:
+        raise RuntimeError("External music generation is disabled. The current sung-MP3 provider is hosted ACE-Step, not a local model. To knowingly enable it, set ALLOW_EXTERNAL_AI=true. A fully local singing model must be installed separately and needs substantial storage and compute.")
     import time
     from urllib.parse import urljoin
 
