@@ -187,7 +187,18 @@ def generate_instrumental(title: str, genre: str = "Pop", mood: str = "Uplifting
 
     # Optional experimental vowel-like vocal layer. This maps lyric vowel letters to
     # formant colors; it does not pronounce consonants or produce intelligible words.
-    lyric_vowels = [ch.lower() for ch in (lyrics or "").lower() if ch in "aeiou"]
+    vowel_map = {
+        "a": "a", "e": "e", "i": "i", "o": "o", "u": "u",
+        "ਅ": "a", "ਆ": "a", "ਾ": "a", "ਇ": "i", "ਿ": "i", "ਈ": "i", "ੀ": "i",
+        "ਉ": "u", "ੁ": "u", "ਊ": "u", "ੂ": "u", "ਏ": "e", "ੇ": "e",
+        "ਐ": "e", "ੈ": "e", "ਓ": "o", "ੋ": "o", "ਔ": "o", "ੌ": "o",
+        "अ": "a", "आ": "a", "ा": "a", "इ": "i", "ि": "i", "ई": "i", "ी": "i",
+        "उ": "u", "ु": "u", "ऊ": "u", "ू": "u", "ए": "e", "े": "e",
+        "ऐ": "e", "ै": "e", "ओ": "o", "ो": "o", "औ": "o", "ौ": "o",
+    }
+    lyric_vowels = [
+        vowel_map[ch] for ch in (lyrics or "").lower() if ch in vowel_map
+    ]
     if lyric_vowels:
         phrase_step = beat * 2.0
         voice_times = [n * phrase_step for n in range(int(duration / phrase_step) + 1)]
