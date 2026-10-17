@@ -278,7 +278,12 @@ def dataframe_summary(df):
         lines.append(numeric.describe().round(3).to_string())
     return '\n'.join(lines)
 
-TASK_PLUGINS, TASK_PLUGIN_ERRORS = load_task_plugins()\nTASK_PLUGIN_MAP = {item['name']: item for item in TASK_PLUGINS}\nCORE_PAGES = ['Chat', 'AI Music Studio', 'Punjabi Song Generator', 'File Analyst', 'Calculator', 'Notes & Tasks', 'Settings']\nWORKSPACE_PAGES = CORE_PAGES + [item['name'] for item in TASK_PLUGINS]\n\nif 'chat_history' not in st.session_state: st.session_state.chat_history = []
+TASK_PLUGINS, TASK_PLUGIN_ERRORS = load_task_plugins()
+TASK_PLUGIN_MAP = {item['name']: item for item in TASK_PLUGINS}
+CORE_PAGES = ['Chat', 'AI Music Studio', 'Punjabi Song Generator', 'File Analyst', 'Calculator', 'Notes & Tasks', 'Settings']
+WORKSPACE_PAGES = CORE_PAGES + [item['name'] for item in TASK_PLUGINS]
+
+if 'chat_history' not in st.session_state: st.session_state.chat_history = []
 if 'pending_action' not in st.session_state: st.session_state.pending_action = None
 if 'notes' not in st.session_state: st.session_state.notes = load_notes()
 
