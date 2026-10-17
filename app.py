@@ -313,7 +313,7 @@ if page == 'Chat':
                             'When asked for Punjabi lyrics, follow the requested script: Gurmukhi Punjabi or Roman Punjabi. '
                             'Use natural, idiomatic Punjabi, a clear song structure (Mukhda/Chorus and Antara/Verses), '
                             'consistent rhyme and rhythm, and avoid translating word-for-word from English. '
-                            'Do not claim you have generated audio; provide lyrics only unless asked otherwise.'
+                            'Do not claim you have generated audio; provide lyrics only unless asked otherwise. If the user asks for a sung MP3, music, beats, or audio generation, explain briefly that chat is text-only and direct them to the separate Punjabi Song Generator page and its Generate sung MP3 button. Do not tell them they must use Suno or Udio, because the app includes a best-effort free MP3 generation feature.'
                         ),
                     )
             except Exception as exc:
