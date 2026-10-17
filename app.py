@@ -25,6 +25,10 @@ def load_task_plugins():
     tasks_dir.mkdir(exist_ok=True)
     loaded = []
     errors = []
+    reserved_names = {
+        "Chat", "AI Music Studio", "Punjabi Song Generator", "File Analyst",
+        "Calculator", "Notes & Tasks", "Settings",
+    }
     for task_file in sorted(tasks_dir.glob("*.py")):
         if task_file.name.startswith("_") or task_file.name == "__init__.py":
             continue
@@ -41,6 +45,8 @@ def load_task_plugins():
                 raise ValueError("Define a non-empty TASK_NAME in this task file.")
             if not callable(render):
                 raise ValueError("Define a callable render() function in this task file.")
+            if task_name.casefold() in {name.casefold() for name in reserved_names}:
+                raise ValueError(f"The task name {task_name!r} is reserved for a built-in page.")
             if any(item["name"].casefold() == task_name.casefold() for item in loaded):
                 raise ValueError(f"Another task already uses the name {task_name!r}.")
             loaded.append({
